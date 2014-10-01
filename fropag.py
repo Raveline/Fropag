@@ -1,14 +1,27 @@
 import argparse
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
-from publication import Publication, Base
+from publication import Publication, Base, path_to_corpus
+from os import mkdir
 
 engine = create_engine("sqlite:///example.db")
 Base.metadata.bind = engine
 
+def init_db(args):
+    engine = create_engine("sqlite:///example.db")
+    Base.metadata.create_all(engine)
+    return "Created database."
+
 def get_session():
     DBSession = sessionmaker(bind=engine)
     return DBSession()
+
+def read_all(args):
+    session = get_session()
+    publications = session.query(Publication).all()
+    for pub in publications:
+        pub.save_front_page()
+    return "Read {} front pages.".format(len(publications))
 
 def add_publication(args):
     name = args.name
@@ -17,6 +30,7 @@ def add_publication(args):
     new_publication = Publication(name=name, url=url)
     session.add(new_publication)
     session.commit()
+    mkdir(path_to_corpus + new_publication.name_as_folder())
     return "Saving publication with {} and {} ".format(name, url)
 
 if __name__ == "__main__":
@@ -26,8 +40,12 @@ if __name__ == "__main__":
     follow = subparsers.add_parser("follow", help="follow help")
     follow.add_argument("name", help="Name of the publication to follow.")
     follow.add_argument("url", help="URL of the front page for this publication.")
+    init = subparsers.add_parser("init", help="Setup database.")
+    read = subparsers.add_parser("read", help="Read followed front pages")
     follow.set_defaults(func=add_publication)
-
+    init.set_defaults(func=init_db)
+    read.set_defaults(func=read_all)
+    
     args = parser.parse_args()
     res = args.func(args)
     print(res)

@@ -4,9 +4,10 @@ from sqlalchemy import Column, ForeignKey, Integer, String, DateTime
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship
 from reader import read_front_page
+from time import strftime
 
 def today_string():
-    return strfttime("%Y%m%d%H%M%S")
+    return strftime("%Y%m%d%H%M%S")
 
 path_to_corpus = "corpus/"
 Base = declarative_base()
@@ -27,7 +28,7 @@ class Publication(Base):
 
     def save_front_page(self):
         page = read_front_page(self.url)
-        name = ''.join([path_to_corpus, self.name_as_folder, "/", today_string()])
+        name = ''.join([path_to_corpus, self.name_as_folder(), "/", today_string()])
         with open(name, 'w') as f:
             f.write(page)
 
@@ -44,7 +45,3 @@ class WordCount(Base):
     frontpage_id = Column(Integer, ForeignKey("frontpage.id"))
     word_id = Column(Integer, ForeignKey("word.id"))
     count = Column(Integer)
-
-def init_db():
-    engine = create_engine("sqlite:///example.db")
-    Base.metadata.create_all(engine)
