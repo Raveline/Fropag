@@ -18,7 +18,7 @@ def read_front_page(newspaper_url, after, before):
     """Read the front page of a newspaper."""
     text = just_content(access_page(newspaper_url))
     text = cut_between(text, after, before)
-    return text.replace('\n', '\t')
+    return text
 
 def access_page(url):
     """Access a page at a given URL."""
@@ -39,7 +39,10 @@ def just_content(page):
     soup = BeautifulSoup(page)
     [tag.decompose() for tag in soup('script')]
     [tag.decompose() for tag in soup('style')]
-    return soup.body.get_text().strip()
+    text = soup.body.get_text(separator = u' ').strip()
+    # Get rid of LF and double spaces
+    text.replace('\n','\t').replace('  ', ' ')
+    return text
 
 def cut_between(text, fromT, toT):
     """Only keep a text between FROM value and TO value.
