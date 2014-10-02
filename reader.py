@@ -22,6 +22,8 @@ def access_page(url):
     """Access a page at a given URL."""
     page = urllib.request.urlopen(url)
     encoding = page.headers.get_param('charset')
+    if encoding is None:
+        encoding = 'utf-8'
     # TODO : raise a special exception if cannot be read
     return str(page.read().decode(encoding))
 
@@ -33,6 +35,6 @@ def just_content(page):
     and we need to have something general enough so that we can
     (hopefully !) use it for very different websites."""
     soup = BeautifulSoup(page)
-    while soup.script is not None:
-        soup.script.decompose()
+    [tag.decompose() for tag in soup('script')]
+    [tag.decompose() for tag in soup('style')]
     return soup.body.get_text().strip()
