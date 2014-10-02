@@ -22,5 +22,20 @@ class TestPageReader(unittest.TestCase):
         res = just_content(page)
         self.assertEqual(res, "I want this.")
 
+    def test_cut_between_normal(self):
+        text = "Shall I compare thee to a summer day ? Thou art more lovely"
+        text2 = cut_between(text, "thee", "?")
+        self.assertEqual(text2, "to a summer day")
+
+    def test_cut_from_not_there(self):
+        text = "Shall I compare thee"
+        text2 = cut_between(text, "hamburger", "thee")
+        self.assertEqual(text2, "Shall I compare")
+
+    def test_cut_to_not_there(self):
+        text = "Shall I compare thee to a summer day"
+        text2 = cut_between(text, "compare", "hamburger")
+        self.assertEqual(text2, "thee to a summer day")
+        
 if __name__ == "__main__":
     unittest.main()

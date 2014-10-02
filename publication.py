@@ -22,12 +22,16 @@ class Publication(Base):
     id = Column(Integer, primary_key=True)
     name = Column(String)
     url = Column(String)
+    # Front page begin AFTER this value (cutting the header)
+    start = Column(String)
+    # Front page stops BEFORE this value (cutting the footer)
+    end = Column(String)
 
     def name_as_folder(self):
         return self.name.lower().replace(' ', '')
 
     def save_front_page(self):
-        page = read_front_page(self.url)
+        page = read_front_page(self.url, self.start, self.end)
         name = ''.join([path_to_corpus, self.name_as_folder(), "/", today_string()])
         with open(name, 'w') as f:
             f.write(page)

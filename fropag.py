@@ -27,11 +27,12 @@ def add_publication(args):
     name = args.name
     url = args.url
     session = get_session()
-    new_publication = Publication(name=name, url=url)
+    new_publication = Publication(name=name, url=url
+                        , start=args.start, end=args.end)
     session.add(new_publication)
     session.commit()
     mkdir(path_to_corpus + new_publication.name_as_folder())
-    return "Saving publication with {} and {} ".format(name, url)
+    return "Following publication {} at {} ".format(name, url)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -40,6 +41,8 @@ if __name__ == "__main__":
     follow = subparsers.add_parser("follow", help="follow help")
     follow.add_argument("name", help="Name of the publication to follow.")
     follow.add_argument("url", help="URL of the front page for this publication.")
+    follow.add_argument("start", help="Expression identifying the beginning of the front page.")
+    follow.add_argument("end", help="Expression identifying the ending of the front page.")
     init = subparsers.add_parser("init", help="Setup database.")
     read = subparsers.add_parser("read", help="Read followed front pages")
     follow.set_defaults(func=add_publication)

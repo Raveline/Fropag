@@ -14,9 +14,11 @@ import re
 # Note : this will not take some names (O'Brien, for instance)
 pattern = re.compile("[^\w\s-]", re.UNICODE)
 
-def read_front_page(newspaper_url):
+def read_front_page(newspaper_url, after, before):
     """Read the front page of a newspaper."""
-    return just_content(access_page(newspaper_url))
+    text = just_content(access_page(newspaper_url))
+    text = cut_between(text, after, before)
+    return text.replace('\n', '\t')
 
 def access_page(url):
     """Access a page at a given URL."""
@@ -38,3 +40,17 @@ def just_content(page):
     [tag.decompose() for tag in soup('script')]
     [tag.decompose() for tag in soup('style')]
     return soup.body.get_text().strip()
+
+def cut_between(text, fromT, toT):
+    """Only keep a text between FROM value and TO value.
+    If FROM does not exist, start from beginning. 
+    If END does not exist, keep till the end."""
+    from_pos = text.find(fromT)
+    to_pos = text.find(toT)
+    if from_pos == -1:
+        from_pos = 0
+    else:
+        from_pos = from_pos + len(fromT)
+    if to_pos == -1:
+        to_pos = len(text)
+    return text[from_pos:to_pos].strip()
