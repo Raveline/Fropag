@@ -11,11 +11,13 @@ class TestPageReader(unittest.TestCase):
         # We want to make sure script are removed.
         page = """<html><head><head>...blabla...</head><body>
                 <script>Some javascript</script>
+                <style>Things I should not see</style>
                 <h1>What I want</h1><div><p> is this.</p></div></body>"""
         res = just_content(page)
         self.assertEqual(res, "What I want is this.")
         # We want to make sure MULTIPLE scripts are removed
         page = """<html><body><script>don't want this</script>
+                  <style>Things I shouln't see</style>
                   <script>nor this</script><p>I want this.</script>"""
         res = just_content(page)
         self.assertEqual(res, "I want this.")
