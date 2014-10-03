@@ -3,6 +3,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from publication import Publication, Base, path_to_corpus
 from os import mkdir
+import multiprocessing
 
 engine = create_engine("sqlite:///example.db")
 Base.metadata.bind = engine
@@ -17,10 +18,17 @@ def get_session():
     return DBSession()
 
 def read_all(args):
+    """Read every frontpages followed.
+    Get the followed publications from the database,
+    then read them. This being a lengthy process, we'll
+    try and multiprocess it to see if it helps."""
     session = get_session()
     publications = session.query(Publication).all()
+    processes = []
     for pub in publications:
-        pub.save_front_page()
+        processes.append(multiprocessing.Process(target=pub.save_front_page()))
+    [p.start() for p in processes]
+    [p.join() for p in processes]
     return "Read {} front pages.".format(len(publications))
 
 def add_publication(args):
