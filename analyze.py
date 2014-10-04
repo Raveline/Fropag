@@ -47,8 +47,8 @@ def get_text_for(publication_folder):
 
 def tag_text(text):
     """Analyze a text to be able to identify unwanted words."""
-    posTagger = POSTagger('stanford-tagger/french.tagger'
-                        ,'stanford-tagger/stanford-postagger.jar'
+    posTagger = POSTagger('stanford/french.tagger'
+                        ,'stanford/stanford-postagger.jar'
                         ,encoding='utf-8')
     return posTagger.tag(text.tokens)   
 
