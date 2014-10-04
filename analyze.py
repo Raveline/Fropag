@@ -5,7 +5,7 @@ stat_from_corpus will give :
 - The lexical variety
 - The list of common words, without some "banned" words for each
 publication (thinks like "share", "read more", etc.)
-- The list of proper nouns, a
+- TODO The list of proper nouns. (Waiting for Stanford to release that)
 
 Only verbs, adjective and nouns should be left once NLTK
 has done its analyzis. The current version is only thought
@@ -28,6 +28,7 @@ from collections import Counter
 # tags.
 postagging_to_remove = ['PUNC','DET', 'P', 'C', 'CC'
                        , 'PRO', 'CLS', 'PROREL', 'CS']
+proper_nouns = 'NPP'
 
 def read_corpus_for(publication_folder):
     """Read all the recorded issue for a given publication.
@@ -60,16 +61,22 @@ def trim_unwanted_tags(tagged):
     # So we'll also trim any non alphanum characters here.
     # Finally, some lone characters can also be identified
     # as foreign words. Let's get rid of those.
-    return [w[0].lower() for w in tagged if w[1] not in postagging_to_remove
+    return [w for w in tagged if w[1] not in postagging_to_remove
             and w[0].isalnum() and len(w[0]) > 2]
 
-def reduce_to_wanted_words(publication_folder):
+def get_lexical_richness(words):
+    return len(set(words)) / len(words)
+
+def get_stats(publication_folder):
     tagged = tag_text(get_text_for(publication_folder))
     filtered = trim_unwanted_tags(tagged)
-    return filtered
+    proper = [w[0].capitalize() for w in filtered if w[1] == proper_nouns]
+    others = [w[0].lower() for w in filtered if w[1] != proper_nouns]
+    return (get_most_used(proper), get_most_used(others)
+           ,get_lexical_richness(proper))
 
 def get_most_used(words):
     return Counter(words)
 
 if __name__ == "__main__":
-    print(get_most_used(reduce_to_wanted_words("lefigaro")))
+    print(get_stats("lefigaro"))
