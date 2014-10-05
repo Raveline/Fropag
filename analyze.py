@@ -17,7 +17,7 @@ the stanford directory should contains the dependencies
 for this task."""
 
 from nltk.corpus import PlaintextCorpusReader
-from nltk import Text
+from nltk import Text, word_tokenize
 from nltk.tag.stanford import POSTagger
 from publication import Publication, path_to_corpus
 from collections import Counter
@@ -29,22 +29,6 @@ from collections import Counter
 postagging_to_remove = ['PUNC','DET', 'P', 'C', 'CC'
                        , 'PRO', 'CLS', 'PROREL', 'CS']
 proper_nouns = 'NPP'
-
-def read_corpus_for(publication_folder):
-    """Read all the recorded issue for a given publication.
-    Only the folder is given here, as the Corpus directory
-    should be properly divided with subfolders for each
-    publication."""
-    root = path_to_corpus + publication_folder
-    return PlaintextCorpusReader(root, '.*', encoding='utf-8')
-
-def corpus_to_text(corpus):
-    """Use a corpus reader to build a nltk Text."""
-    return Text(corpus.words())
-
-def get_text_for(publication_folder):
-    """Composition of read_corpus_for and corpus_to_text."""
-    return corpus_to_text(read_corpus_for(publication_folder))
 
 def tag_text(text):
     """Analyze a text to be able to identify unwanted words."""
@@ -67,15 +51,20 @@ def trim_unwanted_tags(tagged):
 def get_lexical_richness(words):
     return len(set(words)) / len(words)
 
-def get_stats(publication_folder):
-    tagged = tag_text(get_text_for(publication_folder))
+def frontpage_to_text(text):
+    tokens = word_tokenize(text)
+    return Text(tokens)
+
+def get_stats(text):
+    nltk_text = frontpage_to_text(text)
+    tagged = tag_text(nltk_text)
     filtered = trim_unwanted_tags(tagged)
     proper = [w[0].capitalize() for w in filtered if w[1] == proper_nouns]
     others = [w[0].lower() for w in filtered if w[1] != proper_nouns]
-    return (get_most_used(proper), get_most_used(others)
+    return (to_counter(proper), to_counter(others)
            ,get_lexical_richness(proper))
 
-def get_most_used(words):
+def to_counter(words):
     return Counter(words)
 
 if __name__ == "__main__":

@@ -10,10 +10,6 @@ from collections import Counter
 import urllib.request
 import re
 
-# Match only alphanum and hyphen (for composed words).
-# Note : this will not take some names (O'Brien, for instance)
-pattern = re.compile("[^\w\s-]", re.UNICODE)
-
 def read_front_page(newspaper_url, after, before):
     """Read the front page of a newspaper."""
     text = just_content(access_page(newspaper_url))

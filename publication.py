@@ -1,10 +1,11 @@
 # -*- coding: utf-8 -*-
 from sqlalchemy import create_engine
-from sqlalchemy import Column, ForeignKey, Integer, String, DateTime
+from sqlalchemy import Column, ForeignKey, Integer, String, Float
+from sqlalchemy import DateTime, Boolean, UniqueConstraint
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship
 from reader import read_front_page
-from time import strftime
+import datetime
 
 def today_string():
     return strftime("%Y%m%d%H%M%S")
@@ -16,6 +17,8 @@ class Word(Base):
     __tablename__ = "word"
     id = Column(Integer, primary_key=True)
     word = Column(String)
+    proper = Column(Boolean)
+    UniqueConstraint('word', 'proper')
 
 class Publication(Base):
     __tablename__ = "publication"
@@ -27,20 +30,12 @@ class Publication(Base):
     # Front page stops BEFORE this value (cutting the footer)
     end = Column(String)
 
-    def name_as_folder(self):
-        return self.name.lower().replace(' ', '')
-
-    def save_front_page(self):
-        page = read_front_page(self.url, self.start, self.end)
-        name = ''.join([path_to_corpus, self.name_as_folder(), "/", today_string()])
-        with open(name, 'w') as f:
-            f.write(page)
-
 class FrontPage(Base):
     __tablename__ = "frontpage"
     id = Column(Integer, primary_key=True)
     publication_id = Column(Integer, ForeignKey("publication.id"))
-    time_of_publication = Column(DateTime)
+    time_of_publication = Column(DateTime, default=datetime.datetime.utcnow)
+    lexical_richness = Column(Float)
     publication = relationship(Publication)
 
 class WordCount(Base):
