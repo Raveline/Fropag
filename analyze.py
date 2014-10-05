@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """This module offers some analysis of studied corpus.
 It extracts meaningful words (separating common and proper nouns)
 to give statistics on word usage.
