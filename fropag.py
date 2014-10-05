@@ -34,6 +34,18 @@ def get_session():
     DBSession = sessionmaker(bind=engine)
     return DBSession()
 
+def delete_front_page(args):
+    """Delete ONE front page from the database.
+    Must delete the dependent wordcounts."""
+    session = get_session()
+    found = session.query(FrontPage).filter_by(id=args.id).one()
+    if found:
+        session.delete(found)
+        session.commit()
+        return "Deleted."
+    else:
+        "No such frontpage."
+        
 def read_all(args):
     """Read every frontpages followed.
     Get the followed publications from the database,
@@ -103,11 +115,16 @@ if __name__ == "__main__":
     follow.add_argument("url", help="URL of the front page for this publication.")
     follow.add_argument("start", help="Expression identifying the beginning of the front page.")
     follow.add_argument("end", help="Expression identifying the ending of the front page.")
+
+    delete = subparsers.add_parser("delete", help = "delete help")
+    delete.add_argument("id", help="Id of the front page to delete")
+
     init = subparsers.add_parser("init", help="Setup database.")
     read = subparsers.add_parser("read", help="Read followed front pages and analyze them.")
     follow.set_defaults(func=add_publication)
     init.set_defaults(func=init_db)
     read.set_defaults(func=read_all)
+    delete.set_defaults(func=delete_front_page)
     
     args = parser.parse_args()
     res = args.func(args)

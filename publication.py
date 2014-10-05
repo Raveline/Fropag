@@ -29,6 +29,7 @@ class Publication(Base):
     start = Column(String)
     # Front page stops BEFORE this value (cutting the footer)
     end = Column(String)
+    front_pages = relationship("FrontPage", cascade="delete", backref="publication")
 
 class FrontPage(Base):
     __tablename__ = "frontpage"
@@ -36,7 +37,7 @@ class FrontPage(Base):
     publication_id = Column(Integer, ForeignKey("publication.id"))
     time_of_publication = Column(DateTime, default=datetime.datetime.utcnow)
     lexical_richness = Column(Float)
-    publication = relationship(Publication)
+    words = relationship("WordCount", cascade="delete")
 
 class WordCount(Base):
     __tablename__ = "wordcount"
