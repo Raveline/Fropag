@@ -1,4 +1,4 @@
 sqlalchemy
 beautifulsoup4
 nltk
-py-postgresql
+psycopg2
