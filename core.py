@@ -37,6 +37,7 @@ def check_config():
         raise ConfigException(none_value + " in config.py is None. Fill it before using Fropag.")
 
 def get_engine():
+    global engine
     if engine is None:
         check_config()
         connection_string = ''.join(["postgresql+pypostgresql://"
@@ -49,7 +50,6 @@ def get_engine():
                                     ,config.DB_PORT
                                     ,'/'
                                     ,config.DB_NAME])
-        global engine
         engine = create_engine(connection_string) 
         Base.metadata.bind = engine
     else:
