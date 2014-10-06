@@ -46,6 +46,7 @@ class DatabaseOperations(DBTesting):
         self.session.add(nfp1)
         self.session.add(nfp2)
         self.session.add(nfp3)
+        self.session.commit()
         # Counters to use
         proper_counter1 = Counter({'proper1' : 1})
         common_counter1 = Counter({'word1' : 2, 'word2' : 1})
@@ -58,9 +59,18 @@ class DatabaseOperations(DBTesting):
         save_words(self.session, nfp2.id, proper_counter2, common_counter2)
         save_words(self.session, nfp3.id, proper_counter3, common_counter3)
         # Here we are !
-        result = see_words_for("Test1")
-        self.assertTrue('word1' in result)
-        self.assertFalse('word4' in result, "Only words in this publication should be there")
+        result = dict(see_words_for("Test1", False))
+        # Are the proper words here ?
+        self.assertTrue('word1' in result.keys()
+                    , "Every words in this publication should be there")
+        self.assertTrue('word2' in result.keys()
+                    , "Every words in this publication should be there")
+        self.assertTrue('word3' in result.keys()
+                    , "Every words in this publication should be there")
+        self.assertFalse('word4' in result.keys()
+                    , "Only words in this publication should be there")
+        # Are they properly counted ?
+        self.assertEqual(result['word1'], 3)
 
 if __name__ == "__main__":
     unittest.main()

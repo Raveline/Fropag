@@ -1,8 +1,7 @@
 # -*- coding: utf-8 -*-
-
 import multiprocessing
 import time
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, func, desc
 from sqlalchemy.orm import sessionmaker
 from publication import Publication, Base, path_to_corpus, Word, FrontPage, WordCount
 
@@ -18,15 +17,17 @@ class ConfigException(Exception):
     def __str__(self):
         return repr(self.value)
 
-def see_words_for(publication_name):
+def see_words_for(publication_name, proper, limit = 10):
     s = get_session()
-    q = s.query(Word).join(WordCount, Word.id == WordCount.word_id).\
+    q = s.query(Word.word, func.sum(WordCount.count).label('sumcount')).\
+            join(WordCount, Word.id == WordCount.word_id).\
             join(FrontPage, WordCount.frontpage_id == FrontPage.id).\
             join(Publication, Publication.id == FrontPage.publication_id).\
-            order_by(WordCount.count.desc()).\
             filter(Publication.name == publication_name).\
-            all()
-    return [str(w.word) for w in q]
+            filter(Word.proper == proper).\
+            group_by(Word.word).\
+            order_by(desc('sumcount')).all()[:limit]
+    return q
 
 def check_config():
     config_values = [config.DB_USER, config.DB_PASSWORD, config.DB_HOST
