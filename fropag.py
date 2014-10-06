@@ -5,9 +5,11 @@ import time
 import multiprocessing
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
-from publication import Publication, Base, path_to_corpus, Word, FrontPage, WordCount
+from publication import Publication, Base, path_to_corpus, Word
+from publication import FrontPage, WordCount
 
-from core import follow_publication, delete_front_page, analyze_process, init_db
+from core import follow_publication, delete_front_page, analyze_process
+from core import init_db, ConfigException
 
 def make_db(args):
     return init_db()
@@ -42,5 +44,9 @@ if __name__ == "__main__":
     delete.set_defaults(func=delete_fp)
     
     args = parser.parse_args()
-    res = args.func(args)
-    print(res)
+    try:
+        res = args.func(args)
+        print(res)
+    except ConfigException as ce:
+        print("[FAILED] - Your configuration file is faulty.")
+        print(ce)

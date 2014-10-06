@@ -8,9 +8,52 @@ from publication import Publication, Base, path_to_corpus, Word, FrontPage, Word
 
 from reader import read_front_page
 from analyze import get_stats
+import config
 
-engine = create_engine("sqlite:///example.db")
-Base.metadata.bind = engine
+engine = None
+
+class ConfigException(Exception):
+    def __init__(self, value):
+        self.value = value
+    def __str__(self):
+        return repr(self.value)
+
+def check_config():
+    config_values = [config.DB_USER, config.DB_PASSWORD, config.DB_HOST
+                    ,config.DB_PORT, config.DB_NAME]
+    is_there_none = any([v is None for v in config_values])
+    if is_there_none:
+        none_value = ""
+        if config.DB_USER is None:
+            none_value = "DB_USER"
+        if config.DB_PASSWORD is None:
+            none_value = "DB_PASSWORD"
+        if config.DB_HOST is None:
+            none_value = "DB_HOST"
+        if config.DB_PORT is None:
+            none_value = "DB_PORT"
+        if config.DB_NAME is None:
+            none_value = "DB_NAME"
+        raise ConfigException(none_value + " in config.py is None. Fill it before using Fropag.")
+
+def get_engine():
+    if engine is None:
+        check_config()
+        connection_string = ''.join(["postgresql+pypostgresql://"
+                                    ,config.DB_USER
+                                    ,':'
+                                    ,config.DB_PASSWORD
+                                    ,'@'
+                                    ,config.DB_HOST
+                                    ,':'
+                                    ,config.DB_PORT
+                                    ,'/'
+                                    ,config.DB_NAME])
+        global engine
+        engine = create_engine(connection_string) 
+        Base.metadata.bind = engine
+    else:
+        return engine
 
 def follow_publication(name, url, start, end):
     session = get_session()
@@ -37,11 +80,12 @@ def save_all(session, q):
         common_nouns = [(get_word_id(session, w[0], False), w[1]) for w in stats[1].items()]
 
         # This being bulk inserts, we're going to use SqlAlchemy Core
-        engine.execute(
+        eng = get_engine()
+        eng.execute(
             WordCount.__table__.insert(),
             [{'count' : w[1], 'frontpage_id' : new_front_page.id
             ,'word_id' : w[0]} for w in common_nouns])
-        engine.execute(
+        eng.execute(
             WordCount.__table__.insert(),
             [{'count' : w[1], 'frontpage_id' : new_front_page.id
             ,'word_id' : w[0]} for w in proper_nouns])
@@ -95,10 +139,11 @@ def get_word_id(session, w, p):
         return new_word.id
 
 def init_db():
-    engine = create_engine("sqlite:///example.db")
-    Base.metadata.create_all(engine)
+    eng = get_engine()
+    Base.metadata.create_all(eng)
     return "Created database."
 
 def get_session():
-    DBSession = sessionmaker(bind=engine)
+    eng = get_engine()
+    DBSession = sessionmaker(bind=eng)
     return DBSession()
