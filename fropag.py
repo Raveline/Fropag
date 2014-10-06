@@ -34,7 +34,7 @@ if __name__ == "__main__":
     follow.add_argument("end", help="Expression identifying the ending of the front page.")
 
     delete = subparsers.add_parser("delete", help = "delete help")
-    delete.add_argument("id", help="Id of the front page to delete")
+    delete.add_argument("id", type=int, help="Id of the front page to delete")
 
     init = subparsers.add_parser("init", help="Setup database.")
     read = subparsers.add_parser("read", help="Read followed front pages and analyze them.")
@@ -44,9 +44,13 @@ if __name__ == "__main__":
     delete.set_defaults(func=delete_fp)
     
     args = parser.parse_args()
-    try:
-        res = args.func(args)
-        print(res)
-    except ConfigException as ce:
-        print("[FAILED] - Your configuration file is faulty.")
-        print(ce)
+
+    if hasattr(args, "func"):
+        try:
+            res = args.func(args)
+            print(res)
+        except ConfigException as ce:
+            print("[FAILED] - Your configuration file is faulty.")
+            print(ce)
+    else:
+        parser.print_help()
