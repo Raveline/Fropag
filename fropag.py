@@ -9,7 +9,7 @@ from publication import Publication, Base, path_to_corpus, Word
 from publication import FrontPage, WordCount
 
 from core import follow_publication, delete_front_page, analyze_process
-from core import init_db, ConfigException
+from core import init_db, ConfigException, see_words_for
 
 def make_db(args):
     return init_db()
@@ -19,6 +19,9 @@ def delete_fp(args):
 
 def read_all(args):
     return analyze_process()
+
+def view_words(args):
+    return see_words_for(args.publication_name)
 
 def add_publication(args):
     return follow_publication(args.name, args.url, args.start, args.end)
@@ -32,6 +35,9 @@ if __name__ == "__main__":
     follow.add_argument("url", help="URL of the front page for this publication.")
     follow.add_argument("start", help="Expression identifying the beginning of the front page.")
     follow.add_argument("end", help="Expression identifying the ending of the front page.")
+    
+    words = subparsers.add_parser("words", help="Find words used by a publication")
+    words.add_argument("publication_name", help="Name of the publication")
 
     delete = subparsers.add_parser("delete", help = "delete help")
     delete.add_argument("id", type=int, help="Id of the front page to delete")
@@ -42,6 +48,7 @@ if __name__ == "__main__":
     init.set_defaults(func=make_db)
     read.set_defaults(func=read_all)
     delete.set_defaults(func=delete_fp)
+    words.set_defaults(func=view_words)
     
     args = parser.parse_args()
 
