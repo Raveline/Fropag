@@ -18,6 +18,16 @@ class ConfigException(Exception):
     def __str__(self):
         return repr(self.value)
 
+def see_words_for(publication_name):
+    s = get_session()
+    q = s.query(Word).join(WordCount, Word.id == WordCount.word_id).\
+            join(FrontPage, WordCount.frontpage_id == FrontPage.id).\
+            join(Publication, Publication.id == FrontPage.publication_id).\
+            order_by(WordCount.count.desc()).\
+            filter(Publication.name == publication_name).\
+            all()
+    return [str(w.word) for w in q]
+
 def check_config():
     config_values = [config.DB_USER, config.DB_PASSWORD, config.DB_HOST
                     ,config.DB_PORT, config.DB_NAME]
@@ -40,7 +50,7 @@ def get_engine():
     global engine
     if engine is None:
         check_config()
-        connection_string = ''.join(["postgresql+pypostgresql://"
+        connection_string = ''.join(["postgresql+psycopg2://"
                                     ,config.DB_USER
                                     ,':'
                                     ,config.DB_PASSWORD
@@ -50,7 +60,7 @@ def get_engine():
                                     ,config.DB_PORT
                                     ,'/'
                                     ,config.DB_NAME])
-        engine = create_engine(connection_string) 
+        engine = create_engine(connection_string, isolation_level="AUTOCOMMIT")
         Base.metadata.bind = engine
     else:
         return engine
@@ -73,21 +83,23 @@ def save_all(session, q):
                               ,lexical_richness = stats[2])
         session.add(new_front_page)
         session.commit()
-        
+        save_words(session, new_front_page.id, stats[0], stats[1])
+
+def save_words(session, publication_id, propers, commons):
         # Get id for words - this is going to be slow - particularly for new words
         # but session cache-like abilities could help us
-        proper_nouns = [(get_word_id(session, w[0], True), w[1]) for w in stats[0].items()]
-        common_nouns = [(get_word_id(session, w[0], False), w[1]) for w in stats[1].items()]
+        proper_nouns = [(get_word_id(session, w[0], True), w[1]) for w in propers.items()]
+        common_nouns = [(get_word_id(session, w[0], False), w[1]) for w in commons.items()]
 
         # This being bulk inserts, we're going to use SqlAlchemy Core
         eng = get_engine()
         eng.execute(
             WordCount.__table__.insert(),
-            [{'count' : w[1], 'frontpage_id' : new_front_page.id
+            [{'count' : w[1], 'frontpage_id' : publication_id
             ,'word_id' : w[0]} for w in common_nouns])
         eng.execute(
             WordCount.__table__.insert(),
-            [{'count' : w[1], 'frontpage_id' : new_front_page.id
+            [{'count' : w[1], 'frontpage_id' : publication_id
             ,'word_id' : w[0]} for w in proper_nouns])
 
 def analyze_process():
