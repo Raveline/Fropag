@@ -16,9 +16,17 @@ Base = declarative_base()
 class Word(Base):
     __tablename__ = "word"
     id = Column(Integer, primary_key=True)
-    word = Column(String)
+    word = Column(String, index=True)
     proper = Column(Boolean)
     UniqueConstraint('word', 'proper')
+
+class Forbidden(Base):
+    __tablename__ = "forbidden"
+    id = Column(Integer, primary_key=True)
+    word_id = Column(Integer, ForeignKey("word.id")
+                ,nullable = False)
+    # Can and SHOULD be null for general interdictions
+    publication_id = Column(Integer, ForeignKey("publication.id"))
 
 class Publication(Base):
     __tablename__ = "publication"
@@ -29,19 +37,25 @@ class Publication(Base):
     start = Column(String)
     # Front page stops BEFORE this value (cutting the footer)
     end = Column(String)
-    front_pages = relationship("FrontPage", cascade="delete", backref="publication")
+    front_pages = relationship("FrontPage", cascade="delete"
+                            , backref="publication")
 
 class FrontPage(Base):
     __tablename__ = "frontpage"
     id = Column(Integer, primary_key=True)
-    publication_id = Column(Integer, ForeignKey("publication.id"))
-    time_of_publication = Column(DateTime, default=datetime.datetime.utcnow)
+    publication_id = Column(Integer, ForeignKey("publication.id")
+                    ,nullable = False, index=True)
+    time_of_publication = Column(DateTime
+            , default=datetime.datetime.utcnow, index=True)
     lexical_richness = Column(Float)
     words = relationship("WordCount", cascade="delete")
 
 class WordCount(Base):
     __tablename__ = "wordcount"
     id = Column(Integer, primary_key=True)
-    frontpage_id = Column(Integer, ForeignKey("frontpage.id"))
-    word_id = Column(Integer, ForeignKey("word.id"))
+    frontpage_id = Column(Integer, ForeignKey("frontpage.id")
+                ,nullable = False, index=True)
+    word_id = Column(Integer, ForeignKey("word.id")
+                ,nullable = False, index=True)
     count = Column(Integer)
+
