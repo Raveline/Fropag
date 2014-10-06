@@ -10,7 +10,7 @@ from publication import Publication, Base, path_to_corpus, Word, FrontPage, Word
 from core import follow_publication, delete_front_page, analyze_process, init_db
 
 def make_db(args):
-    init_db()
+    return init_db()
 
 def delete_fp(args):
     return delete_front_page(args.id)   
