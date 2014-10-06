@@ -31,19 +31,46 @@ def just_content(page):
     and we'll disregard any script.
     We didn't use a SoupStrainer, because we wan't a LOT of things,
     and we need to have something general enough so that we can
-    (hopefully !) use it for very different websites."""
+    (hopefully !) use it for very different websites.
+
+    >>> just_content("<html><head>No</head><body><script>NO!</script>\
+            <style>NOOOO</style><h1>Just</h1><div>this<p>text</p></div>")
+    'Just this text'
+
+    >>> just_content("<html><head></head><body><script>No</script>\
+            <script>Still no</script><div>This</div>")
+    'This'
+
+    >>> just_content("<html><body><div>Well\\nHello !</div></body>")
+    'Well\\tHello !'
+
+    >>> just_content("<html><body>Well <div>hello !</div>")
+    'Well hello !'
+
+    """
     soup = BeautifulSoup(page)
     [tag.decompose() for tag in soup('script')]
     [tag.decompose() for tag in soup('style')]
     text = soup.body.get_text(separator = u' ').strip()
     # Get rid of LF and double spaces
-    text.replace('\n','\t').replace('  ', ' ')
+    text = text.replace('\n','\t').replace(u'  ', u' ')
     return text
 
 def cut_between(text, fromT, toT):
     """Only keep a text between FROM value and TO value.
     If FROM does not exist, start from beginning. 
-    If END does not exist, keep till the end."""
+    If END does not exist, keep till the end.
+
+    >>> cut_between('Shall I compare thee ? To...', 'compare', '?')
+    'thee'
+
+    >>> cut_between('Shall I compare thee', 'burg', 'thee')
+    'Shall I compare'
+
+    >>> cut_between('Shall I compare thee to a summer day', 'compare', 'burg')
+    'thee to a summer day'
+    """
+
     from_pos = text.find(fromT)
     to_pos = text.find(toT)
     if from_pos == -1:
