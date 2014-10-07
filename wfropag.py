@@ -2,6 +2,9 @@
 import os
 from flask import Flask, render_template
 from flask.ext.assets import Environment, Bundle
+from flask.json import jsonify
+
+from core import get_publication_tops
 
 app = Flask(__name__)
 app.debug = True
@@ -19,9 +22,17 @@ assets.register(
 
 @app.route('/')
 def index():
-    return render_template('index.html', publication = [])
+    p = get_publication_tops()
+    return render_template('index.html', publications = p)
+
+@app.route('/top_commons/<string:pub_name>')
+def get_commons(pub_name):
+    p = see_words_for(pub_name)
+    return jsonify(p)
 
 if __name__ == "__main__":
     app.run()
 
-
+@app.teardown_appcontext
+def shutdown_session(exception=None):
+    db_session.remove()

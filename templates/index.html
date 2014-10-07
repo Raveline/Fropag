@@ -14,14 +14,13 @@
       <h2>FROPAG</h2>
     </div>
     <div class = "col-sm-8">
-      <h2>Les mots les plus utilisés</h2>
+      <h3>Tout médias suivis confondus</h3>
     </div>
   </div>
   <div class="container">
-    {% for p in publications %}
-    <div class = "col-md-4">
-      <h2>{{ p. name }}</h2>
-      Some stats here
+    {% for p, d in publications.items() %}
+    <div class = "col-md-2">
+      <h3>{{ p }}</h3>
     </div>
     {% endfor %}
   </div>

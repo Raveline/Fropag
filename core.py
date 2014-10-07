@@ -8,15 +8,33 @@ from publication import Publication, Word, FrontPage, WordCount
 from reader import read_front_page
 from analyze import get_stats
 
+def get_publication_tops():
+    # This is rather ugly. But getting limited result for grouped queries
+    # is rather impracticable. Best solution will be to cache this result.
+    results = {}
+    for (pub_id, pub_name) in db_session.query(Publication.id, Publication.name):
+        q = word_counting_query().filter(Publication.id == pub_id)
+        propers = q.filter(Word.proper == True).all()[:10]
+        commons = q.filter(Word.proper == False).all()[:10]
+        results[pub_name] = { "id" : pub_id
+                            , "propers" : propers
+                            , "commons" : commons }
+    return results
+
+def join_from_words_to_publication(q):
+    return q.join(WordCount, Word.id == WordCount.word_id).\
+      join(FrontPage, WordCount.frontpage_id == FrontPage.id).\
+      join(Publication, Publication.id == FrontPage.publication_id)
+
+def word_counting_query():
+    q = db_session.query(Word.word, func.sum(WordCount.count).label('sumcount'))
+    q = join_from_words_to_publication(q)
+    return q.group_by(Word.word).order_by(desc('sumcount'))
+
 def see_words_for(publication_name, proper, limit = 10):
-    q = db_session.query(Word.word, func.sum(WordCount.count).label('sumcount')).\
-            join(WordCount, Word.id == WordCount.word_id).\
-            join(FrontPage, WordCount.frontpage_id == FrontPage.id).\
-            join(Publication, Publication.id == FrontPage.publication_id).\
-            filter(Publication.name == publication_name).\
+    q = word_counting_query().filter(Publication.name == publication_name).\
             filter(Word.proper == proper).\
-            group_by(Word.word).\
-            order_by(desc('sumcount')).all()[:limit]
+            all()[:limit]
     return q
 
 def follow_publication(name, url, start, end):
@@ -80,8 +98,8 @@ def delete_front_page(fp_id):
     Must delete the dependent wordcounts."""
     found = db_session.query(FrontPage).filter_by(id=fp_id).one()
     if found:
-        session.delete(found)
-        session.commit()
+        db_session.delete(found)
+        db_session.commit()
         return "Deleted."
     else:
         "No such frontpage."
