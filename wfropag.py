@@ -3,6 +3,7 @@ import os
 from flask import Flask, render_template, request
 from flask.ext.assets import Environment, Bundle
 from flask.json import jsonify
+from database import db_session
 
 from core import get_publications, get_publication_tops, get_all_tops
 
