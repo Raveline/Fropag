@@ -2,16 +2,14 @@
 from sqlalchemy import create_engine
 from sqlalchemy import Column, ForeignKey, Integer, String, Float
 from sqlalchemy import DateTime, Boolean, UniqueConstraint
-from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship
 from reader import read_front_page
 import datetime
 
+from database import Base
+
 def today_string():
     return strftime("%Y%m%d%H%M%S")
-
-path_to_corpus = "corpus/"
-Base = declarative_base()
 
 class Word(Base):
     __tablename__ = "word"

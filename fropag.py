@@ -2,14 +2,9 @@
 # -*- coding: utf-8 -*-
 import argparse
 import time
-import multiprocessing
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
-from publication import Publication, Base, path_to_corpus, Word
-from publication import FrontPage, WordCount
-
+from database import ConfigException
 from core import follow_publication, delete_front_page, analyze_process
-from core import init_db, ConfigException, see_words_for
+from core import init_db, see_words_for
 
 def make_db(args):
     return init_db()

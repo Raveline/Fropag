@@ -20,7 +20,7 @@ for this task."""
 from nltk.corpus import PlaintextCorpusReader
 from nltk import Text, word_tokenize
 from nltk.tag.stanford import POSTagger
-from publication import Publication, path_to_corpus
+from publication import Publication
 from collections import Counter
 
 
