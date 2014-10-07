@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 import os
-from flask import Flask, render_template
+from flask import Flask, render_template, request
 from flask.ext.assets import Environment, Bundle
 from flask.json import jsonify
 
@@ -19,15 +19,23 @@ assets.register(
         output="css_all.css"
     )
 )
+assets.register(
+    'js_all',
+    Bundle(
+        'jquery/dist/jquery.min.js',
+        'bootstrap/dist/js/bootstrap.min.js'
+    )
+)
 
 @app.route('/')
 def index():
     p = get_publications()
     return render_template('index.html', publications = p)
 
-@app.route('/top_commons/<string:pub_name>')
-def get_commons(pub_name):
-    p = see_words_for(pub_name)
+@app.route('/top_commons/')
+def get_commons():
+    names = request.args.getlist("names[]")
+    p = get_publication_tops(names)
     return jsonify(p)
 
 if __name__ == "__main__":

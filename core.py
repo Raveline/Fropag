@@ -8,6 +8,9 @@ from publication import Publication, Word, FrontPage, WordCount
 from reader import read_front_page
 from analyze import get_stats
 
+propers_prelude = [("Noms propres", "Décompte")]
+commons_prelude = [("Noms communs", "Décompte")]
+
 def get_publications():
     return [str(p[0]) for p in db_session.query(Publication.name).all()]
 
@@ -15,13 +18,13 @@ def get_publication_tops(names):
     # This is rather ugly. But getting limited result for grouped queries
     # is rather impracticable. Best solution will be to cache this result.
     results = {}
-    for (p_name, p_id) in db_session.query(Publication.id, Publication.name).\
+    for (p_id, p_name) in db_session.query(Publication.id, Publication.name).\
                         filter(Publication.name.in_(names)):
         q = word_counting_query().filter(Publication.id == p_id)
         propers = q.filter(Word.proper == True).all()[:10]
         commons = q.filter(Word.proper == False).all()[:10]
-        results[p_name] = {"propers" : propers
-                            , "commons" : commons }
+        results[p_name] = {"propers" : propers_prelude + propers
+                            , "commons" : commons_prelude + commons }
     return results
 
 def join_from_words_to_publication(q):

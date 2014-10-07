@@ -6,6 +6,12 @@
     {% assets "css_all" %}
     <link rel="stylesheet" href="{{ ASSET_URL }}" type="text/css">
     {% endassets %}
+    {% assets "js_all" %}
+    <script type="text/javascript" src="{{ ASSET_URL }}"></script>
+    {% endassets %}
+    <script type="text/javascript" src="{{ url_for('static', filename='fropag.js') }}"></script>
+    <script type="text/javascript" src="https://www.google.com/jsapi"></script>
+
     <title>Fropag</title>
   </head>
   <body>
@@ -19,10 +25,15 @@
   </div>
   <div class="container">
     {% for p in publications %}
-    <div class = "col-md-2">
+    <div class = "col-md-2 pub-box">
       <h3>{{ p }}</h3>
+      <div class="proper"></div>
+      <div class="commons"></div>
     </div>
     {% endfor %}
   </div>
+  <script>
+    init_fropag(['corechart'], function() { return box_class('/top_commons/') });
+  </script>
   </body>
 </html>
