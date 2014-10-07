@@ -4,7 +4,7 @@ from flask import Flask, render_template
 from flask.ext.assets import Environment, Bundle
 from flask.json import jsonify
 
-from core import get_publication_tops
+from core import get_publications, get_publication_tops
 
 app = Flask(__name__)
 app.debug = True
@@ -22,7 +22,7 @@ assets.register(
 
 @app.route('/')
 def index():
-    p = get_publication_tops()
+    p = get_publications()
     return render_template('index.html', publications = p)
 
 @app.route('/top_commons/<string:pub_name>')
