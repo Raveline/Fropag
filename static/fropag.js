@@ -7,7 +7,11 @@ function one_ajax_for_nodes(data, url, nodes, draw_func) {
     $.get(url, data, function(data) {
         nodes.each(function(index, node) {
             name = values[index];
-            draw_func(node, name, data[name]);
+            relevant_data = data;
+            if (name in data) {
+                relevant_data = data[name];
+            } 
+            draw_func(node, name, relevant_data);
         });
     });
 }
@@ -16,7 +20,11 @@ function title_text_extractor(node) {
     return $(node).children('h3').text();
 }
 
-function box_class(url) {
+function one_publish(url, selected_class) {
+  one_ajax_for_nodes({}, url, $(selected_class), draw_double_bar_chart);
+}
+
+function box_publish(url) {
     /** For each followed publications,
     display a little chart. **/
     selected = $('.pub-box');

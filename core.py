@@ -11,6 +11,17 @@ from analyze import get_stats
 propers_prelude = [("Noms propres", "Décompte")]
 commons_prelude = [("Noms communs", "Décompte")]
 
+def separate_propers_and_commons(query):
+    results = {}
+    propers = query.filter(Word.proper == True).all()[:10]
+    commons = query.filter(Word.proper == False).all()[:10]
+    results['propers'] = propers_prelude + propers;
+    results['commons'] = commons_prelude + commons;
+    return results
+
+def get_all_tops():
+    return separate_propers_and_commons(word_counting_query())
+
 def get_publications():
     return [str(p[0]) for p in db_session.query(Publication.name).all()]
 
@@ -21,10 +32,7 @@ def get_publication_tops(names):
     for (p_id, p_name) in db_session.query(Publication.id, Publication.name).\
                         filter(Publication.name.in_(names)):
         q = word_counting_query().filter(Publication.id == p_id)
-        propers = q.filter(Word.proper == True).all()[:10]
-        commons = q.filter(Word.proper == False).all()[:10]
-        results[p_name] = {"propers" : propers_prelude + propers
-                            , "commons" : commons_prelude + commons }
+        results[p_name] = separate_propers_and_commons(q)
     return results
 
 def join_from_words_to_publication(q):
