@@ -5,12 +5,16 @@ import config
 from core import *
 from database import *
 from sqlalchemy import func
+from sqlalchemy.orm import sessionmaker, scoped_session
 
 class DBTesting(unittest.TestCase):
     def setUp(self):
         config.DB_NAME = "testFropag"
         config.DB_USER = "testUser"
         config.DB_PASSWORD = "testPwd"
+        global engine, db_session
+        engine = get_engine()
+        db_session = scoped_session(sessionmaker(bind=engine))
         init_db()
 
     def tearDown(self):
