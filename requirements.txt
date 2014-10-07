@@ -2,3 +2,5 @@ sqlalchemy
 beautifulsoup4
 nltk
 psycopg2
+flask
+flask-assets
