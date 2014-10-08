@@ -1,44 +1,28 @@
-<!DOCTYPE html>
-<html lang="fr">
-  <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    {% assets "css_all" %}
-    <link rel="stylesheet" href="{{ ASSET_URL }}" type="text/css">
-    {% endassets %}
-    {% assets "js_all" %}
-    <script type="text/javascript" src="{{ ASSET_URL }}"></script>
-    {% endassets %}
-    <script type="text/javascript" src="{{ url_for('static', filename='fropag.js') }}"></script>
-    <script type="text/javascript" src="https://www.google.com/jsapi"></script>
-
-    <title>Fropag</title>
-  </head>
-  <body>
-  <div class="container">
-    <div class = "col-md-12">
-      <h2>FROPAG</h2>
-    </div>
-    <div class = "col-sm-8 pub-all">
-      <h3>Tous média suivis confondus</h3>
-      <div class="proper"></div>
-      <div class="commons"></div>
-    </div>
+{% extends "layout.html" %}
+{% block body %}
+<div class="container">
+  <div class = "col-md-12">
+    <h2>FROPAG</h2>
   </div>
-  <div class="container">
-    {% for p in publications %}
-    <div class = "col-md-4 pub-box">
-      <h3>{{ p }}</h3>
-      <div class="proper"></div>
-      <div class="commons"></div>
-    </div>
-    {% endfor %}
+  <div class = "col-sm-8 pub-all">
+    <h3>Tous média suivis confondus</h3>
+    <div class="proper"></div>
+    <div class="commons"></div>
   </div>
-  <script>
-    init_fropag(['corechart'], function() { 
-        box_publish('{{ url_for('get_top_words_for') }}');
-        one_publish('{{ url_for('get_top_words_all') }}', '.pub-all');
-      });
-  </script>
-  </body>
-</html>
+</div>
+<div class="container">
+  {% for p in publications %}
+  <div class = "col-md-4 pub-box">
+    <h3>{{ p }}</h3>
+    <div class="proper"></div>
+    <div class="commons"></div>
+  </div>
+  {% endfor %}
+</div>
+<script>
+  init_fropag(['corechart'], function() { 
+      box_publish('{{ url_for('get_top_words_for') }}');
+      one_publish('{{ url_for('get_top_words_all') }}', '.pub-all');
+    });
+</script>
+{% endblock %}

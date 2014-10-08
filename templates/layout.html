@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    {% assets "css_all" %}
+    <link rel="stylesheet" href="{{ ASSET_URL }}" type="text/css">
+    {% endassets %}
+    {% assets "js_all" %}
+    <script type="text/javascript" src="{{ ASSET_URL }}"></script>
+    {% endassets %}
+    <script type="text/javascript" src="{{ url_for('static', filename='fropag.js') }}"></script>
+    <script type="text/javascript" src="https://www.google.com/jsapi"></script>
+    <title>Fropag</title>
+  </head>
+  <body>
+  {% block body %}
+  {% endblock %}
+  </body>
+</html>
