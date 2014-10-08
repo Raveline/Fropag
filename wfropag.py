@@ -1,13 +1,15 @@
 # -*- coding: utf-8 -*-
 import os
-from flask import Flask, render_template, request
+from flask import Flask, render_template, request, session, redirect, url_for
 from flask.ext.assets import Environment, Bundle
 from flask.json import jsonify
 from database import db_session
+import config
 
 from core import get_publications, get_publication_tops, get_all_tops
 
 app = Flask(__name__)
+app.secret_key = config.SECRET_KEY
 app.debug = True
 # ASSETS
 assets = Environment(app)
@@ -27,6 +29,21 @@ assets.register(
         'bootstrap/dist/js/bootstrap.min.js'
     )
 )
+
+@app.route('/admin')
+def connect():
+    return render_template('connect.html')
+
+@app.route('/login', methods = ['POST'])
+def login():
+    login = request.form['login']
+    password = request.form['password']
+    if login == config.LOGIN and password == config.PASSWORD:
+        session['admin'] = True
+        return redirect(url_for('index'))
+    else:
+        session['admin'] = False
+        return redirect(url_for('connect'))
 
 @app.route('/')
 def index():
