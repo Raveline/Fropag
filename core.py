@@ -2,6 +2,7 @@
 import multiprocessing
 import time
 from sqlalchemy import func, desc
+from sqlalchemy.orm.exc import NoResultFound
 from database import Base, engine, db_session
 from publication import Publication, Word, FrontPage, WordCount
 
@@ -23,7 +24,7 @@ def get_all_tops():
     return separate_propers_and_commons(word_counting_query())
 
 def get_publications():
-    return [str(p[0]) for p in db_session.query(Publication.name).all()]
+    return db_session.query(Publication).all()
 
 def get_publication_tops(names):
     # This is rather ugly. But getting limited result for grouped queries
@@ -57,6 +58,10 @@ def follow_publication(name, url, start, end):
     db_session.add(new_publication)
     db_session.commit()
     return "Following publication {} at {} ".format(name, url)
+
+def modify_publication(id_p, name, url, start, end):
+    found = db_session.query(Publication).filter(Publication.id == id_p).\
+            update({"name":name, "url":url, "start":start, "end":end })
 
 def save_all(q):
     while not q.empty():
@@ -107,16 +112,23 @@ def read_and_analyze(publication, q):
     stats = get_stats(page)
     q.put((publication, stats))
 
+def delete_stuff(q):
+    try:
+        db_session.delete(q.one())
+        db_session.commit()
+        return "Deleted."
+    except NoResultFound:
+        return "No such publication."
+
+def delete_publication(p_id):
+    """Delete ONE publication from the database.
+    Must delete teh dependents frontpage & wordcounts."""
+    return delete_stuff(db_session.query(Publication).filter(Publication.id==p_id))
+
 def delete_front_page(fp_id):
     """Delete ONE front page from the database.
     Must delete the dependent wordcounts."""
-    found = db_session.query(FrontPage).filter_by(id=fp_id).one()
-    if found:
-        db_session.delete(found)
-        db_session.commit()
-        return "Deleted."
-    else:
-        "No such frontpage."
+    return delete_stuff(db_session.query(FrontPage).filter(FrontPage.id==fp_id))
 
 def get_word_id(w, p):
     """Get the id of w in the database.

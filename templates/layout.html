@@ -15,7 +15,7 @@
   </head>
   <body>
   {% if session.admin %}
-  <a>Ajouter des publications</a>
+  <a href="{{ url_for('admin_publications') }}">Ajouter des publications</a>
   <a>Gérer les mots</a>
   {% endif %}
   {% block body %}

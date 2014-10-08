@@ -4,9 +4,11 @@ from flask import Flask, render_template, request, session, redirect, url_for
 from flask.ext.assets import Environment, Bundle
 from flask.json import jsonify
 from database import db_session
+from functools import wraps
 import config
 
 from core import get_publications, get_publication_tops, get_all_tops
+from core import delete_publication, modify_publication, follow_publication
 
 app = Flask(__name__)
 app.secret_key = config.SECRET_KEY
@@ -30,6 +32,15 @@ assets.register(
     )
 )
 
+def login_required(f):
+    """Make sure the user is logged in. If not, redirct him to the login page."""
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if not session.get('admin'):
+            return redirect(url_for('index'))
+        return f(*args, **kwargs)
+    return decorated_function
+
 @app.route('/admin')
 def connect():
     return render_template('connect.html')
@@ -47,8 +58,8 @@ def login():
 
 @app.route('/')
 def index():
-    p = get_publications()
-    return render_template('index.html', publications = p)
+    return render_template('index.html'
+        , publications = [p.name for p in get_publications()])
 
 @app.route('/top_words_all/')
 def get_top_words_all():
@@ -60,6 +71,36 @@ def get_top_words_for():
     names = request.args.getlist("names[]")
     p = get_publication_tops(names)
     return jsonify(p)
+
+@app.route('/admin/publications')
+@login_required
+def admin_publications():
+    return render_template('admin_publications.html', 
+                        publications = get_publications())
+
+@app.route('/publication/<int:p_id>')
+@login_required
+def remove_publication(p_id):
+    delete_publication(p_id)
+    return redirect(url_for('admin_publications'))
+    
+@app.route('/publication/add', methods=['POST'])
+def add_publication():
+    follow_publication(request.form['name']
+                    , request.form['url']
+                    , request.form['start']
+                    , request.form['end'])
+    return redirect(url_for('admin_publications'))
+
+@app.route('/publication/update', methods=['POST'])
+def update_publication():
+    name = request.form['name']
+    url = request.form['url']
+    begin = request.form['start']
+    end = request.form['end']
+    idp = request.form['id']
+    modify_publication(idp, name, url, begin, end)
+    return redirect(url_for('admin_publications'))
 
 if __name__ == "__main__":
     app.run()

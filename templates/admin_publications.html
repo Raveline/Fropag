@@ -1,0 +1,49 @@
+{% extends "layout.html" %}
+
+{% block body %}
+<h3>Existing publications</h3>
+{% for pub in publications %}
+<form class="form-inline" action="{{ url_for('update_publication') }}" method="POST" role="form">
+  <div class="form-group">
+    <label class="sr-only" for="name">Publication name</label>
+    <input class="form-control" type="text" name="name" value="{{ pub.name }}"/>
+  </div>
+  <div class="form-group">
+    <label class="sr-only" for="url">Publication URL</label>
+    <input class="form-control" type="text" name="url" value="{{ pub.url }}"/>
+  </div>
+  <div class="form-group">
+    <label class="sr-only" for="start">Begin at what expression ?</label>
+    <input class="form-control" type="text" name="start" value="{{ pub.start }}"/>
+  </div>
+  <div class="form-group">
+    <label class="sr-only" for="end">End at what expression ?</label>
+    <input class="form-control" type="text" name="end" value="{{ pub.end }}"/>
+  </div>
+  <input class="sr-only" type="hidden" name="id" value="{{ pub.id }}"/>
+  <button type="submit" class="btn btn-default">Modify</button>
+  <a class="btn btn-default active" id="remove-{{pub.id}}" data-method="DELETE" href="{{ url_for('remove_publication', p_id = pub.id) }}">Remove</a>
+</form>
+{% endfor %}
+
+<h3>New publication</h3>
+<form action="{{ url_for('add_publication') }}" method="POST" role="form">
+  <div class="form-group">
+    <label for="name">Publication name</label>
+    <input class="form-control" type="text" name="name" placeholder="Name"/>
+  </div>
+  <div class="form-group">
+    <label for="url">Publication URL</label>
+    <input class="form-control" type="text" name="url" placeholder="URL"/>
+  </div>
+  <div class="form-group">
+    <label for="start">Begin at what expression ?</label>
+    <input class="form-control" type="text" name="start"/>
+  </div>
+  <div class="form-group">
+    <label for="end">End at what expression ?</label>
+    <input class="form-control" type="text" name="end"/>
+  </div>
+  <button type="submit" class="btn btn-default">Submit</button>
+</form>
+{% endblock %}
