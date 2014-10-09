@@ -10,6 +10,7 @@ import config
 from core import get_publications, get_publication_tops, get_all_tops
 from core import delete_publication, modify_publication, follow_publication
 from core import get_word_data, boot_sql_alchemy, NonExistingDataException
+from core import modify_word
 
 app = Flask(__name__)
 app.secret_key = config.SECRET_KEY
@@ -115,6 +116,16 @@ def update_publication():
     idp = request.form['id']
     modify_publication(idp, name, url, begin, end)
     return redirect(url_for('admin_publications'))
+
+@app.route('/word/update', methods=['POST'])
+def update_word():
+    id_w = request.form['word_id']
+    proper = 'proper' in request.form.keys()
+    forbidden_all = 'forbidden_all' in request.form.keys()
+    forbidden_pubs = request.form.getlist('forbidden_publications')
+    modify_word(id_w, proper, forbidden_all, forbidden_pubs)
+    return redirect(url_for('index'))
+
 
 if __name__ == "__main__":
     app.run()

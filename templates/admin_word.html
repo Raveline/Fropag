@@ -2,7 +2,7 @@
 
 {% block body %}
 <h3>Word : {{ w.word }}</h3>
-<form class="form-inline" action="{{ url_for('update_publication') }}" method="POST" role="form">
+<form class="form" action="{{ url_for('update_word') }}" method="POST" role="form">
   <div class="checkbox">
     <label>
       {% if w.proper %}
@@ -15,18 +15,19 @@
   <div class="checkbox">
     <label>
       {% if forbidden_all %}
-      <input type="checkbox" name="proper" checked="checked">Forbidden for every publication</label>
+      <input type="checkbox" name="forbidden_all" checked="checked">Forbidden for every publication</label>
       {% else %}
-      <input type="checkbox" name="proper">Forbidden for every publication</label>
+      <input type="checkbox" name="forbidden_all">Forbidden for every publication</label>
       {% endif %}
     </label>
   </div>
   This word should be forbidden for :
-  <select multiple class="form-control">
+  <select name="forbidden_publications" multiple class="form-control">
     {% for pub in publications %}
       <option value="{{ pub.id }}" {% if pub.forbidden %} selected="selected" {% endif %}>{{ pub.name }}</option>
     {% endfor %}
   </select>
+  <input type="hidden" name="word_id" value="{{ w.id }}">
   <button type="submit" class="btn btn-default">Modify</button>
 </form>
 {% endblock %}

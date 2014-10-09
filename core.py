@@ -39,7 +39,6 @@ def get_word_data(word):
     if not res:
         raise NonExistingDataException("Word " + word + " does not exist.")
     else:
-        print(res)
         result = {}
         result['forbidden_all'] = res[0][1] is not None and res[0][2] is None
         result['word'] = res[0][0]
@@ -70,6 +69,23 @@ def get_publication_tops(names):
         results[p_name] = separate_propers_and_commons(q)
     return results
 
+def modify_word(id_w, proper, forbid_all, forbidden):
+    # First, let's udpate the word table
+    found = db_session.query(Word).filter(Word.id == id_w).\
+            update({"proper": proper})
+    # Then, remove every forbidden properties for this word
+    for forb in db_session.query(Forbidden).filter(Forbidden.word_id == id_w):
+        db_session.delete(forbidden_all)
+    # Then if forbid_all : insert only word_id
+    if forbid_all:
+        newForbidden = Forbidden(word_id = id_w)
+        db_session.add(newForbidden)
+    else:
+        for fpub in forbidden:
+            newForbidden = Forbidden(word_id = id_w, publication_id = fpub)
+            db_session.add(newForbidden)
+    return "Updated."
+
 def join_from_words_to_publication(q):
     return q.join(WordCount, Word.id == WordCount.word_id).\
       join(FrontPage, WordCount.frontpage_id == FrontPage.id).\
@@ -94,7 +110,7 @@ def follow_publication(name, url, start, end):
     return "Following publication {} at {} ".format(name, url)
 
 def modify_publication(id_p, name, url, start, end):
-    found = db_session.query(Publication).filter(Publication.id == id_p).\
+    db_session.query(Publication).filter(Publication.id == id_p).\
             update({"name":name, "url":url, "start":start, "end":end })
 
 def save_all(q):
