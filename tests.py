@@ -1,27 +1,25 @@
 import unittest
 from collections import Counter
-from reader import *
 import config
-from core import *
-from database import *
 from sqlalchemy import func
 from sqlalchemy.orm import sessionmaker, scoped_session
 
+from database import *
+from publication import *
+from core import *
+
 class DBTesting(unittest.TestCase):
     def setUp(self):
-        config.DB_NAME = "testFropag"
         config.DB_USER = "testUser"
         config.DB_PASSWORD = "testPwd"
-        global engine, db_session
-        engine = get_engine()
-        db_session = scoped_session(sessionmaker(bind=engine))
-        init_db()
+        config.DB_NAME = "testFropag"
+        boot_sql_alchemy()
+        Base.metadata.create_all(engine)
 
     def tearDown(self):
         Base.metadata.drop_all(engine)
 
 class DatabaseOperations(DBTesting):
-
     def test_follow_publication(self):
         test_url = "http://test.test"
         test_name = "Test publication"
@@ -42,6 +40,7 @@ class DatabaseOperations(DBTesting):
         pub1 = db_session.query(Publication).filter(Publication.name == "Test1").one().id
         pub2 = db_session.query(Publication).filter(Publication.name == "Test2").one().id
         # Frontpage 1 and 2 for pub1
+        db_session.begin()
         nfp1 = FrontPage(publication_id = pub1) 
         nfp2 = FrontPage(publication_id = pub1)
         # Frontpage 3 for pub2
@@ -74,6 +73,40 @@ class DatabaseOperations(DBTesting):
                     , "Only words in this publication should be there")
         # Are they properly counted ?
         self.assertEqual(result['word1'], 3)
+
+    def test_word_data(self):
+        follow_publication("Test1", "", "", "")
+        follow_publication("Test2", "", "", "")
+        pub1 = db_session.query(Publication).filter(Publication.name == "Test1").one().id
+        pub2 = db_session.query(Publication).filter(Publication.name == "Test2").one().id
+
+        db_session.begin()
+
+        w1 = Word(word = "word1", proper = False)
+        w2 = Word(word = "word2", proper = True)
+        db_session.add(w1)
+        db_session.add(w2)
+
+        db_session.commit()
+
+        db_session.begin()
+
+        # Word1 is only forbidden in Publication1
+        forbidden1 = Forbidden(word_id = w1.id, publication_id = pub1)
+        # Word2 is only forbidden everywhere
+        forbidden2 = Forbidden(word_id = w2.id)
+        db_session.add(forbidden1)
+        db_session.add(forbidden2)
+
+        db_session.commit()
+
+        data1 = get_word_data("word1")
+        data2 = get_word_data("word2")
+        self.assertFalse(data1['forbidden_all'])
+        self.assertTrue(data2['forbidden_all'])
+        self.assertEqual(data1['word'].word, 'word1')
+        self.assertEqual(data2['word'].proper, True)
+        
 
 if __name__ == "__main__":
     unittest.main()

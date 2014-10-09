@@ -103,6 +103,7 @@ def see_words_for(publication_name, proper, limit = 10):
     return q
 
 def follow_publication(name, url, start, end):
+    db_session.begin()
     new_publication = Publication(name=name, url=url
                         , start=start, end=end)
     db_session.add(new_publication)
@@ -121,6 +122,7 @@ def save_all(q):
         stats = pair[1]
         new_front_page = FrontPage(publication_id = publication.id
                               ,lexical_richness = stats[2])
+        db_session.begin()
         db_session.add(new_front_page)
         db_session.commit()
         save_words(new_front_page.id, stats[0], stats[1])
@@ -188,6 +190,7 @@ def get_word_id(w, p):
         return found.id
     else:
         new_word = Word(word = w, proper = p)
+        db_session.begin()
         db_session.add(new_word)
         db_session.commit()
         return new_word.id

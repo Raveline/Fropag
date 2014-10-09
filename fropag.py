@@ -2,9 +2,9 @@
 # -*- coding: utf-8 -*-
 import argparse
 import time
-from database import ConfigException
 from core import follow_publication, delete_front_page, analyze_process
-from core import init_db, see_words_for
+from core import init_db, see_words_for, boot_sql_alchemy
+from config import ConfigException
 
 def make_db(args):
     return init_db()
@@ -51,10 +51,11 @@ if __name__ == "__main__":
 
     if hasattr(args, "func"):
         try:
+            boot_sql_alchemy()
             res = args.func(args)
             print(res)
         except ConfigException as ce:
             print("[FAILED] - Your configuration file is faulty.")
             print(ce)
     else:
-        parser.print_help()
+        arser.print_help()
