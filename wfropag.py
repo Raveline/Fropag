@@ -9,10 +9,13 @@ import config
 
 from core import get_publications, get_publication_tops, get_all_tops
 from core import delete_publication, modify_publication, follow_publication
+from core import get_word_data, boot_sql_alchemy, NonExistingDataException
 
 app = Flask(__name__)
 app.secret_key = config.SECRET_KEY
 app.debug = True
+boot_sql_alchemy()
+
 # ASSETS
 assets = Environment(app)
 assets.load_path = [os.path.join(os.path.dirname(__file__), 'bower_components')]
@@ -71,6 +74,17 @@ def get_top_words_for():
     names = request.args.getlist("names[]")
     p = get_publication_tops(names)
     return jsonify(p)
+
+@app.route('/admin/word/<string:word>')
+def admin_word(word):
+    try:
+        word_data = get_word_data(word)
+        return render_template('admin_word.html',
+            w = word_data['word'],
+            publications = word_data['publications'],
+            forbidden_all = word_data['forbidden_all'])
+    except NonExistingDataException:
+        return "The word " + word + " does not exist."
 
 @app.route('/admin/publications')
 @login_required

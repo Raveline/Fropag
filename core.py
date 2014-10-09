@@ -2,15 +2,49 @@
 import multiprocessing
 import time
 from sqlalchemy import func, desc
+from sqlalchemy.sql.expression import literal
 from sqlalchemy.orm.exc import NoResultFound
-from database import Base, engine, db_session
-from publication import Publication, Word, FrontPage, WordCount
+from database import Base, engine, get_engine, db_session
+from publication import Publication, Word, FrontPage, WordCount, Forbidden
+import config
 
 from reader import read_front_page
 from analyze import get_stats
 
+class NonExistingDataException(Exception):
+    def __init__(self, value):
+        self.value = value
+    def __str__(self):
+        return repr(self.value)
+
 propers_prelude = [("Noms propres", "Décompte")]
 commons_prelude = [("Noms communs", "Décompte")]
+
+def get_word_data(word):
+    """For a given word (expressed as a string) return various information
+    about it : its name, the publication who should ignore it, and if
+    it is to be ignored by all publications."""
+    # Note : There should always be ONE word as a result.
+    # Sure, a word can be proper and common at the same time,
+    # e.g., mobile (the adjective) and Mobile (the town).
+    # However, proper nouns are to be recorded with a capital
+    # first letter, whereas common nouns are lowered before
+    # being inserted. (See the get_stats function of the analyze module).
+    res = db_session.query(Word, Forbidden.word_id, Forbidden.publication_id,
+            Publication.id, Publication.name, 
+            Forbidden.publication_id == Publication.id).\
+            join(Publication, literal(1) == 1).outerjoin(Forbidden,
+            Forbidden.word_id == Word.id).\
+            filter(Word.word == word).all()
+    if not res:
+        raise NonExistingDataException("Word " + word + " does not exist.")
+    else:
+        print(res)
+        result = {}
+        result['forbidden_all'] = res[0][1] is not None and res[0][2] is None
+        result['word'] = res[0][0]
+        result['publications'] = [{'id' : r[3], 'forbidden' : r[5],'name' : r[4]} for r in res] 
+        return result
 
 def separate_propers_and_commons(query):
     results = {}
@@ -141,6 +175,16 @@ def get_word_id(w, p):
         db_session.add(new_word)
         db_session.commit()
         return new_word.id
+
+def boot_sql_alchemy():
+    global engine
+    engine = get_engine(config.DB_URI
+                    ,config.DB_USER
+                    ,config.DB_PASSWORD
+                    ,config.DB_HOST
+                    ,config.DB_PORT
+                    ,config.DB_NAME)
+    
 
 def init_db():
     Base.metadata.create_all(engine)
