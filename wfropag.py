@@ -37,10 +37,13 @@ assets.register(
 )
 # UTILS
 #------------------------------
+def add_prelude(data):
+    data['propers'] = propers_prelude + data['propers'];
+    data['commons'] = commons_prelude + data['commons'];
+
 def prelude_stat_dictionary(stats):
     for publication, data in stats.items():
-        data['propers'] = propers_prelude + data['propers'];
-        data['commons'] = commons_prelude + data['commons'];
+        add_prelude(data)
 
 # CONSTANTS
 #------------------------------
@@ -79,6 +82,7 @@ def index():
 @app.route('/top_words_all/')
 def get_top_words_all():
     p = get_all_tops()
+    add_prelude(p)
     return jsonify(p)
 
 @app.route('/top_words_for/')

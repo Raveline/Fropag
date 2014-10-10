@@ -64,7 +64,7 @@ def get_publication_frequency(names):
     results = {}
     pubs_and_fp_number = db_session.query(Publication.id, Publication.name)
     for (p_id, p_name) in pubs_and_fp_number:
-        results[p_name] = res
+        results[p_name] = count_frequency_for(p_id)
     return results
 
 def count_frequency_for(p_id):
@@ -77,7 +77,6 @@ def count_frequency_for(p_id):
     return res
 
 def get_all_tops():
-    q = word_counting_query()
     return separate_propers_and_commons(word_counting_query())
 
 def get_publications():
