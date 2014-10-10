@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 import multiprocessing
 import time
-from sqlalchemy import func, desc
+from sqlalchemy import func, desc, distinct
 from sqlalchemy.sql.expression import literal, or_, and_
 from sqlalchemy.orm.exc import NoResultFound
 from database import Base, engine, get_engine, db_session
@@ -10,11 +10,6 @@ import config
 
 from reader import read_front_page
 from analyze import get_stats
-
-# CONSTANTS
-#------------------------------
-propers_prelude = [("Noms propres", "Décompte")]
-commons_prelude = [("Noms communs", "Décompte")]
 
 # EXCEPTIONS
 #------------------------------
@@ -59,13 +54,25 @@ def get_publication_tops(names):
     for (p_id, p_name) in db_session.query(Publication.id, Publication.name).\
                         filter(Publication.name.in_(names)):
         q = word_counting_query().filter(Publication.id == p_id)
-        print(q)
         results[p_name] = separate_propers_and_commons(q)
+    return results
+
+def get_publication_frequency(names):
+    results = {}
+    pubs_and_fp_number = db_session.query(Publication.id, Publication.name)
+    for (p_id, p_name) in pubs_and_fp_number:
+        q = word_counting_query().filter(Publication.id == p_id)
+        tmp_res = separate_propers_and_commons(q)
+
+        n_frontpages = db_session.query(func.count(FrontPage.id)).\
+                filter(FrontPage.publication_id == p_id).one()[0]
+        tmp_res['propers'] = [(p[0], p[1] / n_frontpages) for p in tmp_res['propers']]
+        tmp_res['commons'] = [(c[0], c[1] / n_frontpages) for c in tmp_res['commons']]
+        results[p_name] = tmp_res
     return results
 
 def get_all_tops():
     q = word_counting_query()
-    print(q)
     return separate_propers_and_commons(word_counting_query())
 
 def get_publications():
@@ -78,10 +85,8 @@ def word_counting_query():
 
 def separate_propers_and_commons(query):
     results = {}
-    propers = query.filter(Word.proper == True).all()[:10]
-    commons = query.filter(Word.proper == False).all()[:10]
-    results['propers'] = propers_prelude + propers;
-    results['commons'] = commons_prelude + commons;
+    results['propers'] = query.filter(Word.proper == True).all()[:10]
+    results['commons'] = query.filter(Word.proper == False).all()[:10]
     return results
 
 def see_words_for(publication_name, proper, limit = 10):

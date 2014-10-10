@@ -10,7 +10,7 @@ import config
 from core import get_publications, get_publication_tops, get_all_tops
 from core import delete_publication, modify_publication, follow_publication
 from core import get_word_data, boot_sql_alchemy, NonExistingDataException
-from core import modify_word
+from core import modify_word, get_publication_frequency
 
 app = Flask(__name__)
 app.secret_key = config.SECRET_KEY
@@ -35,6 +35,17 @@ assets.register(
         'bootstrap/dist/js/bootstrap.min.js'
     )
 )
+# UTILS
+#------------------------------
+def prelude_stat_dictionary(stats):
+    for publication, data in stats.items():
+        data['propers'] = propers_prelude + data['propers'];
+        data['commons'] = commons_prelude + data['commons'];
+
+# CONSTANTS
+#------------------------------
+propers_prelude = [("Noms propres", "Décompte")]
+commons_prelude = [("Noms communs", "Décompte")]
 
 def login_required(f):
     """Make sure the user is logged in. If not, redirct him to the login page."""
@@ -73,7 +84,8 @@ def get_top_words_all():
 @app.route('/top_words_for/')
 def get_top_words_for():
     names = request.args.getlist("names[]")
-    p = get_publication_tops(names)
+    p = get_publication_frequency(names)
+    prelude_stat_dictionary(p)
     return jsonify(p)
 
 @app.route('/admin/word/<string:word>')
@@ -126,10 +138,10 @@ def update_word():
     modify_word(id_w, proper, forbidden_all, forbidden_pubs)
     return redirect(url_for('index'))
 
-
 if __name__ == "__main__":
     app.run()
 
 @app.teardown_appcontext
 def shutdown_session(exception=None):
     db_session.remove()
+
