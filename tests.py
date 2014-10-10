@@ -19,7 +19,7 @@ class DBTesting(unittest.TestCase):
     def tearDown(self):
         Base.metadata.drop_all(engine)
 
-class DatabaseOperations(DBTesting):
+class BasicHighLevelFunctions(DBTesting):
     def test_follow_publication(self):
         test_url = "http://test.test"
         test_name = "Test publication"
@@ -33,22 +33,30 @@ class DatabaseOperations(DBTesting):
         except:
             self.fail("Couldn't fetch ONE result for query.")
 
-    def test_get_words(self):
-        # Insert some publications
+class DatabaseExtraction(DBTesting):
+    def follow_two_publications(self):
+        # Insert two publications for every test requiring some publications
         follow_publication("Test1", "", "", "")
         follow_publication("Test2", "", "", "")
-        pub1 = db_session.query(Publication).filter(Publication.name == "Test1").one().id
-        pub2 = db_session.query(Publication).filter(Publication.name == "Test2").one().id
+        self.pub1 = db_session.query(Publication).filter(Publication.name == "Test1").one().id
+        self.pub2 = db_session.query(Publication).filter(Publication.name == "Test2").one().id
+
+    def create_three_frontpages(self):
+        # Add three frontpages for every test requiring them
         # Frontpage 1 and 2 for pub1
         db_session.begin()
-        nfp1 = FrontPage(publication_id = pub1) 
-        nfp2 = FrontPage(publication_id = pub1)
+        self.nfp1 = FrontPage(publication_id = self.pub1) 
+        self.nfp2 = FrontPage(publication_id = self.pub1)
         # Frontpage 3 for pub2
-        nfp3 = FrontPage(publication_id = pub2)
-        db_session.add(nfp1)
-        db_session.add(nfp2)
-        db_session.add(nfp3)
+        self.nfp3 = FrontPage(publication_id = self.pub2)
+        db_session.add(self.nfp1)
+        db_session.add(self.nfp2)
+        db_session.add(self.nfp3)
         db_session.commit()
+
+    def test_get_words(self):
+        self.follow_two_publications()
+        self.create_three_frontpages()
         # Counters to use
         proper_counter1 = Counter({'proper1' : 1})
         common_counter1 = Counter({'word1' : 2, 'word2' : 1})
@@ -57,9 +65,9 @@ class DatabaseOperations(DBTesting):
         common_counter3 = Counter({'word1' : 12, 'word4' : 2})
         proper_counter3 = Counter({'proper3' : 2})
         # Serialize those counters...
-        save_words(nfp1.id, proper_counter1, common_counter1)
-        save_words(nfp2.id, proper_counter2, common_counter2)
-        save_words(nfp3.id, proper_counter3, common_counter3)
+        save_words(self.nfp1.id, proper_counter1, common_counter1)
+        save_words(self.nfp2.id, proper_counter2, common_counter2)
+        save_words(self.nfp3.id, proper_counter3, common_counter3)
         # Here we are !
         result = dict(see_words_for("Test1", False))
         # Are the proper words here ?
@@ -75,29 +83,22 @@ class DatabaseOperations(DBTesting):
         self.assertEqual(result['word1'], 3)
 
     def test_word_data(self):
-        follow_publication("Test1", "", "", "")
-        follow_publication("Test2", "", "", "")
-        pub1 = db_session.query(Publication).filter(Publication.name == "Test1").one().id
-        pub2 = db_session.query(Publication).filter(Publication.name == "Test2").one().id
+        self.follow_two_publications()
 
         db_session.begin()
-
         w1 = Word(word = "word1", proper = False)
         w2 = Word(word = "word2", proper = True)
         db_session.add(w1)
         db_session.add(w2)
-
         db_session.commit()
 
         db_session.begin()
-
         # Word1 is only forbidden in Publication1
-        forbidden1 = Forbidden(word_id = w1.id, publication_id = pub1)
+        forbidden1 = Forbidden(word_id = w1.id, publication_id = self.pub1)
         # Word2 is only forbidden everywhere
         forbidden2 = Forbidden(word_id = w2.id)
         db_session.add(forbidden1)
         db_session.add(forbidden2)
-
         db_session.commit()
 
         data1 = get_word_data("word1")
@@ -108,15 +109,10 @@ class DatabaseOperations(DBTesting):
         self.assertEqual(data2['word'].proper, True)
 
     def test_counting_forbidden(self):
-        # Insert some publications
-        follow_publication("Test1", "", "", "")
-        follow_publication("Test2", "", "", "")
-        pub1 = db_session.query(Publication).filter(Publication.name == "Test1").one().id
-        pub2 = db_session.query(Publication).filter(Publication.name == "Test2").one().id
+        self.follow_two_publications()
 
         # Insert some words
         db_session.begin()
-
         w1 = Word(word="est", proper=False)
         w2 = Word(word="test", proper=False)
         w3 = Word(word="témoin", proper=False)
@@ -134,25 +130,16 @@ class DatabaseOperations(DBTesting):
         db_session.add(notW2)
         db_session.commit()
 
-        # Insert some frontpages
-        db_session.begin()
-        nfp1 = FrontPage(publication_id = pub1) 
-        nfp2 = FrontPage(publication_id = pub1)
-        # Frontpage 3 for pub2
-        nfp3 = FrontPage(publication_id = pub2)
-        db_session.add(nfp1)
-        db_session.add(nfp2)
-        db_session.add(nfp3)
-        db_session.commit()
+        self.create_three_frontpages()
 
         # Add some counters
         common_counter1 = Counter({'est' : 1, 'test' : 2, "témoin" : 3})
         common_counter2 = Counter({'est' : 4, 'test' : 5, "témoin" : 6})
         common_counter3 = Counter({'est' : 7, 'test' : 8, "témoin" : 9})
         # Serialize those counters...
-        save_words(nfp1.id, Counter(), common_counter1)
-        save_words(nfp2.id, Counter(), common_counter2)
-        save_words(nfp3.id, Counter(), common_counter3)
+        save_words(self.nfp1.id, Counter(), common_counter1)
+        save_words(self.nfp2.id, Counter(), common_counter2)
+        save_words(self.nfp3.id, Counter(), common_counter3)
         full_words = dict(get_all_tops()['commons'])
         # W1 should not be there
         self.assertFalse(w1.word in full_words.keys())
@@ -160,6 +147,37 @@ class DatabaseOperations(DBTesting):
         self.assertEqual(full_words[w2.word], 8)
         # W3 should be there and fully counted
         self.assertEqual(full_words[w3.word], 18)
+
+    def test_frequency(self):
+        self.follow_two_publications()
+        self.create_three_frontpages()
+        common_counter1 = Counter({'rare' : 1, 'common' : 2, 'frequent' : 2})
+        common_counter2 = Counter({'frequent' : 2})
+        common_counter3 = Counter({'common' : 2, 'frequent' : 5})
+        save_words(self.nfp1.id, Counter(), common_counter1)
+        save_words(self.nfp2.id, Counter(), common_counter2)
+        save_words(self.nfp3.id, Counter(), common_counter3)
+        # Expected local frequency are thus :
+        # For pub 1 : 
+        #       Rare 1 occurence / 2 frontpages = .5
+        #       Common 2 occurences / 2 frontpages = 1
+        #       Frequent 4 occurences / 2 frontpages = 2
+        # For pub 2:
+        #       Rare  Zero occurence / 1 frontpages = 0
+        #       Common  2 occurences / 1 frontpages = 2
+        #       Frequent 5 occurence / 1 frontpages = 5
+        # For every publications :
+        #       Rare    1 occurence / 3 frontpages = 0.33
+        #       Common  4 occurences / 3 frontpages = 1.33
+        #       Frequence 9 occurence / 3 frontpages = 3
+        resP1 = dict(count_frequency_for(self.pub1)['commons'])
+        resP2 = dict(count_frequency_for(self.pub2)['commons'])
+        self.assertEqual(resP1['common'], 1)
+        self.assertEqual(resP1['frequent'], 2)
+        self.assertEqual(resP1['rare'], .5)
+        self.assertEqual(resP2['common'], 2)
+        self.assertEqual(resP2['frequent'], 5)
+        self.assertTrue('rare' not in resP2.keys())
 
 if __name__ == "__main__":
     unittest.main()
