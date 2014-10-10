@@ -59,10 +59,13 @@ def get_publication_tops(names):
     for (p_id, p_name) in db_session.query(Publication.id, Publication.name).\
                         filter(Publication.name.in_(names)):
         q = word_counting_query().filter(Publication.id == p_id)
+        print(q)
         results[p_name] = separate_propers_and_commons(q)
     return results
 
 def get_all_tops():
+    q = word_counting_query()
+    print(q)
     return separate_propers_and_commons(word_counting_query())
 
 def get_publications():
@@ -88,13 +91,12 @@ def see_words_for(publication_name, proper, limit = 10):
     return q
 
 def join_from_words_to_publication(q):
-    a = q.join(WordCount, Word.id == WordCount.word_id).\
+    return q.join(WordCount, Word.id == WordCount.word_id).\
       join(FrontPage, WordCount.frontpage_id == FrontPage.id).\
       join(Publication, Publication.id == FrontPage.publication_id).\
-      outerjoin(Forbidden, Forbidden.id == Word.id).\
+      outerjoin(Forbidden, Forbidden.word_id == Word.id).\
       filter(or_(and_(Forbidden.word_id == None, Forbidden.publication_id == None),
                 (and_(Forbidden.word_id != None,Forbidden.publication_id != Publication.id))))
-    return a
 
 # Update functions
 #------------------------------
