@@ -2,7 +2,7 @@
 import multiprocessing
 import time
 from sqlalchemy import func, desc
-from sqlalchemy.sql.expression import literal
+from sqlalchemy.sql.expression import literal, or_, and_
 from sqlalchemy.orm.exc import NoResultFound
 from database import Base, engine, get_engine, db_session
 from publication import Publication, Word, FrontPage, WordCount, Forbidden
@@ -88,9 +88,13 @@ def see_words_for(publication_name, proper, limit = 10):
     return q
 
 def join_from_words_to_publication(q):
-    return q.join(WordCount, Word.id == WordCount.word_id).\
+    a = q.join(WordCount, Word.id == WordCount.word_id).\
       join(FrontPage, WordCount.frontpage_id == FrontPage.id).\
-      join(Publication, Publication.id == FrontPage.publication_id)
+      join(Publication, Publication.id == FrontPage.publication_id).\
+      outerjoin(Forbidden, Forbidden.id == Word.id).\
+      filter(or_(and_(Forbidden.word_id == None, Forbidden.publication_id == None),
+                (and_(Forbidden.word_id != None,Forbidden.publication_id != Publication.id))))
+    return a
 
 # Update functions
 #------------------------------
@@ -148,14 +152,16 @@ def save_words(publication_id, propers, commons):
                         for w in commons.items()]
 
         # This being bulk inserts, we're going to use SqlAlchemy Core
-        engine.execute(
-            WordCount.__table__.insert(),
-            [{'count' : w[1], 'frontpage_id' : publication_id
-            ,'word_id' : w[0]} for w in common_nouns])
-        engine.execute(
-            WordCount.__table__.insert(),
-            [{'count' : w[1], 'frontpage_id' : publication_id
-            ,'word_id' : w[0]} for w in proper_nouns])
+        if common_nouns:
+            engine.execute(
+                WordCount.__table__.insert(),
+                [{'count' : w[1], 'frontpage_id' : publication_id
+                ,'word_id' : w[0]} for w in common_nouns])
+        if proper_nouns:
+            engine.execute(
+                WordCount.__table__.insert(),
+                [{'count' : w[1], 'frontpage_id' : publication_id
+                ,'word_id' : w[0]} for w in proper_nouns])
 
 def analyze_process():
     """Read every frontpages followed.
