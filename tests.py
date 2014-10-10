@@ -106,7 +106,60 @@ class DatabaseOperations(DBTesting):
         self.assertTrue(data2['forbidden_all'])
         self.assertEqual(data1['word'].word, 'word1')
         self.assertEqual(data2['word'].proper, True)
-        
+
+    def test_counting_forbidden(self):
+        # Insert some publications
+        follow_publication("Test1", "", "", "")
+        follow_publication("Test2", "", "", "")
+        pub1 = db_session.query(Publication).filter(Publication.name == "Test1").one().id
+        pub2 = db_session.query(Publication).filter(Publication.name == "Test2").one().id
+
+        # Insert some words
+        db_session.begin()
+
+        w1 = Word(word="est", proper=False)
+        w2 = Word(word="test", proper=False)
+        w3 = Word(word="témoin", proper=False)
+        db_session.add(w1)
+        db_session.add(w2)
+        db_session.add(w3)
+        db_session.commit()
+
+        db_session.begin()
+        # Forbid "est" for every publication
+        neverW1 = Forbidden(word_id = 1)
+        # Forbid "test" for only the first publication
+        notW2 = Forbidden(word_id = 2, publication_id = 1)
+        db_session.add(neverW1)
+        db_session.add(notW2)
+        db_session.commit()
+
+        # Insert some frontpages
+        db_session.begin()
+        nfp1 = FrontPage(publication_id = pub1) 
+        nfp2 = FrontPage(publication_id = pub1)
+        # Frontpage 3 for pub2
+        nfp3 = FrontPage(publication_id = pub2)
+        db_session.add(nfp1)
+        db_session.add(nfp2)
+        db_session.add(nfp3)
+        db_session.commit()
+
+        # Add some counters
+        common_counter1 = Counter({'est' : 1, 'test' : 2, "témoin" : 3})
+        common_counter2 = Counter({'est' : 4, 'test' : 5, "témoin" : 6})
+        common_counter3 = Counter({'est' : 7, 'test' : 8, "témoin" : 9})
+        # Serialize those counters...
+        save_words(nfp1.id, Counter(), common_counter1)
+        save_words(nfp2.id, Counter(), common_counter2)
+        save_words(nfp3.id, Counter(), common_counter3)
+        full_words = dict(get_all_tops()['commons'])
+        # W1 should not be there
+        self.assertFalse(w1.word in full_words.keys())
+        # W2 should be there, but count from pub1 should be not counted
+        self.assertEqual(full_words[w2.word], 8)
+        # W3 should be there and fully counted
+        self.assertEqual(full_words[w3.word], 18)
 
 if __name__ == "__main__":
     unittest.main()
