@@ -11,14 +11,21 @@ import config
 from reader import read_front_page
 from analyze import get_stats
 
+# CONSTANTS
+#------------------------------
+propers_prelude = [("Noms propres", "Décompte")]
+commons_prelude = [("Noms communs", "Décompte")]
+
+# EXCEPTIONS
+#------------------------------
 class NonExistingDataException(Exception):
     def __init__(self, value):
         self.value = value
     def __str__(self):
         return repr(self.value)
 
-propers_prelude = [("Noms propres", "Décompte")]
-commons_prelude = [("Noms communs", "Décompte")]
+# READ - DB AGGREGATION
+#------------------------------
 
 def get_word_data(word):
     """For a given word (expressed as a string) return various information
@@ -45,20 +52,6 @@ def get_word_data(word):
         result['publications'] = [{'id' : r[3], 'forbidden' : r[5],'name' : r[4]} for r in res] 
         return result
 
-def separate_propers_and_commons(query):
-    results = {}
-    propers = query.filter(Word.proper == True).all()[:10]
-    commons = query.filter(Word.proper == False).all()[:10]
-    results['propers'] = propers_prelude + propers;
-    results['commons'] = commons_prelude + commons;
-    return results
-
-def get_all_tops():
-    return separate_propers_and_commons(word_counting_query())
-
-def get_publications():
-    return db_session.query(Publication).all()
-
 def get_publication_tops(names):
     # This is rather ugly. But getting limited result for grouped queries
     # is rather impracticable. Best solution will be to cache this result.
@@ -69,6 +62,38 @@ def get_publication_tops(names):
         results[p_name] = separate_propers_and_commons(q)
     return results
 
+def get_all_tops():
+    return separate_propers_and_commons(word_counting_query())
+
+def get_publications():
+    return db_session.query(Publication).all()
+
+def word_counting_query():
+    q = db_session.query(Word.word, func.sum(WordCount.count).label('sumcount'))
+    q = join_from_words_to_publication(q)
+    return q.group_by(Word.word).order_by(desc('sumcount'))
+
+def separate_propers_and_commons(query):
+    results = {}
+    propers = query.filter(Word.proper == True).all()[:10]
+    commons = query.filter(Word.proper == False).all()[:10]
+    results['propers'] = propers_prelude + propers;
+    results['commons'] = commons_prelude + commons;
+    return results
+
+def see_words_for(publication_name, proper, limit = 10):
+    q = word_counting_query().filter(Publication.name == publication_name).\
+            filter(Word.proper == proper).\
+            all()[:limit]
+    return q
+
+def join_from_words_to_publication(q):
+    return q.join(WordCount, Word.id == WordCount.word_id).\
+      join(FrontPage, WordCount.frontpage_id == FrontPage.id).\
+      join(Publication, Publication.id == FrontPage.publication_id)
+
+# Update functions
+#------------------------------
 def modify_word(id_w, proper, forbid_all, forbidden):
     # First, let's udpate the word table
     found = db_session.query(Word).filter(Word.id == id_w).\
@@ -86,21 +111,12 @@ def modify_word(id_w, proper, forbid_all, forbidden):
             db_session.add(newForbidden)
     return "Updated."
 
-def join_from_words_to_publication(q):
-    return q.join(WordCount, Word.id == WordCount.word_id).\
-      join(FrontPage, WordCount.frontpage_id == FrontPage.id).\
-      join(Publication, Publication.id == FrontPage.publication_id)
+def modify_publication(id_p, name, url, start, end):
+    db_session.query(Publication).filter(Publication.id == id_p).\
+            update({"name":name, "url":url, "start":start, "end":end })
 
-def word_counting_query():
-    q = db_session.query(Word.word, func.sum(WordCount.count).label('sumcount'))
-    q = join_from_words_to_publication(q)
-    return q.group_by(Word.word).order_by(desc('sumcount'))
-
-def see_words_for(publication_name, proper, limit = 10):
-    q = word_counting_query().filter(Publication.name == publication_name).\
-            filter(Word.proper == proper).\
-            all()[:limit]
-    return q
+# Create functions
+#------------------------------
 
 def follow_publication(name, url, start, end):
     db_session.begin()
@@ -109,10 +125,6 @@ def follow_publication(name, url, start, end):
     db_session.add(new_publication)
     db_session.commit()
     return "Following publication {} at {} ".format(name, url)
-
-def modify_publication(id_p, name, url, start, end):
-    db_session.query(Publication).filter(Publication.id == id_p).\
-            update({"name":name, "url":url, "start":start, "end":end })
 
 def save_all(q):
     while not q.empty():
@@ -130,8 +142,10 @@ def save_all(q):
 def save_words(publication_id, propers, commons):
         # Get id for words - this is going to be slow - particularly for new words
         # but session cache-like abilities could help us
-        proper_nouns = [(get_word_id(w[0], True), w[1]) for w in propers.items()]
-        common_nouns = [(get_word_id(w[0], False), w[1]) for w in commons.items()]
+        proper_nouns = [(get_word_id_or_add_it(w[0], True), w[1]) 
+                        for w in propers.items()]
+        common_nouns = [(get_word_id_or_add_it(w[0], False), w[1]) 
+                        for w in commons.items()]
 
         # This being bulk inserts, we're going to use SqlAlchemy Core
         engine.execute(
@@ -164,6 +178,21 @@ def read_and_analyze(publication, q):
     stats = get_stats(page)
     q.put((publication, stats))
 
+def get_word_id_or_add_it(w, p):
+    """Get the id of w in the database.
+    If w doesn't exist, insert it and give return its id."""
+    found = db_session.query(Word).filter_by(word = w, proper = p).first()
+    if found:
+        return found.id
+    else:
+        new_word = Word(word = w, proper = p)
+        db_session.begin()
+        db_session.add(new_word)
+        db_session.commit()
+        return new_word.id
+
+# Delete
+#------------------------------
 def delete_stuff(q):
     try:
         db_session.delete(q.one())
@@ -182,19 +211,9 @@ def delete_front_page(fp_id):
     Must delete the dependent wordcounts."""
     return delete_stuff(db_session.query(FrontPage).filter(FrontPage.id==fp_id))
 
-def get_word_id(w, p):
-    """Get the id of w in the database.
-    If w doesn't exist, insert it and give return its id."""
-    found = db_session.query(Word).filter_by(word = w, proper = p).first()
-    if found:
-        return found.id
-    else:
-        new_word = Word(word = w, proper = p)
-        db_session.begin()
-        db_session.add(new_word)
-        db_session.commit()
-        return new_word.id
 
+# Utilities (should move soon)
+#------------------------------
 def boot_sql_alchemy():
     global engine
     engine = get_engine(config.DB_URI
@@ -204,7 +223,6 @@ def boot_sql_alchemy():
                     ,config.DB_PORT
                     ,config.DB_NAME)
     
-
 def init_db():
     Base.metadata.create_all(engine)
     return "Created database."
