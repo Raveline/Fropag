@@ -100,12 +100,12 @@ def join_from_words_to_publication(q):
 #------------------------------
 def modify_word(id_w, proper, forbid_all, forbidden):
     # First, let's udpate the word table
-    found = db_session.query(Word).filter(Word.id == id_w).\
-            update({"proper": proper})
+    db_session.query(Word).filter(Word.id == id_w).update({"proper": proper})
     # Then, remove every forbidden properties for this word
     for forb in db_session.query(Forbidden).filter(Forbidden.word_id == id_w):
         db_session.delete(forbidden_all)
     # Then if forbid_all : insert only word_id
+    db_session.begin()
     if forbid_all:
         newForbidden = Forbidden(word_id = id_w)
         db_session.add(newForbidden)
@@ -113,6 +113,7 @@ def modify_word(id_w, proper, forbid_all, forbidden):
         for fpub in forbidden:
             newForbidden = Forbidden(word_id = id_w, publication_id = fpub)
             db_session.add(newForbidden)
+    db_session.commit()
     return "Updated."
 
 def modify_publication(id_p, name, url, start, end):
