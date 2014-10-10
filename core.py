@@ -53,23 +53,28 @@ def get_publication_tops(names):
     results = {}
     for (p_id, p_name) in db_session.query(Publication.id, Publication.name).\
                         filter(Publication.name.in_(names)):
-        q = word_counting_query().filter(Publication.id == p_id)
-        results[p_name] = separate_propers_and_commons(q)
+        results[p_name] = count_words_for(p_id, p_name)
     return results
+
+def count_words_for(pub_id):
+    q = word_counting_query().filter(Publication.id == p_id)
+    return separate_propers_and_commons(q)
 
 def get_publication_frequency(names):
     results = {}
     pubs_and_fp_number = db_session.query(Publication.id, Publication.name)
     for (p_id, p_name) in pubs_and_fp_number:
-        q = word_counting_query().filter(Publication.id == p_id)
-        tmp_res = separate_propers_and_commons(q)
-
-        n_frontpages = db_session.query(func.count(FrontPage.id)).\
-                filter(FrontPage.publication_id == p_id).one()[0]
-        tmp_res['propers'] = [(p[0], p[1] / n_frontpages) for p in tmp_res['propers']]
-        tmp_res['commons'] = [(c[0], c[1] / n_frontpages) for c in tmp_res['commons']]
-        results[p_name] = tmp_res
+        results[p_name] = res
     return results
+
+def count_frequency_for(p_id):
+    q = word_counting_query().filter(Publication.id == p_id)
+    res = separate_propers_and_commons(q)
+    n_frontpages = db_session.query(func.count(FrontPage.id)).\
+            filter(FrontPage.publication_id == p_id).one()[0]
+    res['propers'] = [(p[0], p[1] / n_frontpages) for p in res['propers']]
+    res['commons'] = [(c[0], c[1] / n_frontpages) for c in res['commons']]
+    return res
 
 def get_all_tops():
     q = word_counting_query()
