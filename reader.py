@@ -9,12 +9,38 @@ from bs4 import BeautifulSoup
 from collections import Counter
 import urllib.request
 import re
+import os
+
+httpPrefix = "http://"
+
+def prefix_url_if_needed(newspaper_url):
+    """Append "http://" to a URL if it is missing.
+
+    >>> prefix_url_if_needed("www.google.com")
+    'http://www.google.com'
+
+    >>> prefix_url_if_needed("http://www.google.com")
+    'http://www.google.com'
+    """
+    if newspaper_url.startswith("http"):
+        return newspaper_url
+    else:
+        return "http://" + newspaper_url
 
 def read_front_page(newspaper_url, after, before):
     """Read the front page of a newspaper."""
-    text = just_content(access_page(newspaper_url))
+    raw_html = access_page(newspaper_url)
+    text = just_content(raw_html)
     text = cut_between(text, after, before)
+    # Save the file in the corpus folder to be able
+    # to compare it with the next version
+    save_file(newspaper_url, raw_html)
     return text
+
+def save_file(newspaper_url, text):
+    dest = os.path.join("corpus", newspaper_url[len(httpPrefix):])
+    with open(dest, 'w') as f:
+        f.write(text)
 
 def access_page(url):
     """Access a page at a given URL."""
