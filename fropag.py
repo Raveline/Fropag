@@ -58,4 +58,4 @@ if __name__ == "__main__":
             print("[FAILED] - Your configuration file is faulty.")
             print(ce)
     else:
-        arser.print_help()
+        parser.print_help()
