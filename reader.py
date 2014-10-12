@@ -5,7 +5,7 @@ and simply render a Counter object for this words.
 External modules should only have to use the read_front_page
 method."""
 
-from bs4 import BeautifulSoup
+from bs4 import BeautifulSoup, Tag, NavigableString
 from collections import Counter
 import urllib.request
 import re
@@ -13,32 +13,71 @@ import os
 
 httpPrefix = "http://"
 
-def prefix_url_if_needed(newspaper_url):
-    """Append "http://" to a URL if it is missing.
+def unprefixed_url(newspaper_url):
+    return newspaper_url[len(httpPrefix):]
 
-    >>> prefix_url_if_needed("www.google.com")
-    'http://www.google.com'
+def get_previous_frontpage(url):
+    result = None
+    dest= os.path.join("corpus", unprefixed_url(url))
+    with open(dest, 'r') as f:
+        result = f.read()
+    return result
 
-    >>> prefix_url_if_needed("http://www.google.com")
-    'http://www.google.com'
+def extract_script_and_style(soup):
+    """Remove the script and style tag from an HTML document
+    in BeautifulSoup format.
+    >>> soup = BeautifulSoup("<script>N</script><style></style><div>This</div>")
+    >>> extract_script_and_style(soup)
+    >>> str(soup)
+    '<div>This</div>'
     """
-    if newspaper_url.startswith("http"):
-        return newspaper_url
-    else:
-        return "http://" + newspaper_url
+    [tag.decompose() for tag in soup('script')]
+    [tag.decompose() for tag in soup('style')]
+
+def compare(previous, new):
+    """Compare two HTML documents in BeautifulSoup format to remove any
+    similar tags from the second one.
+    This allow comparing two frontpages from one day to the next,
+    and remove everything that is pure templating and column names.
+
+    >>> doc1 = BeautifulSoup('<html><body><div class="container">\
+    <div class="menu"><a>Choice1</a><a>Choice2</a><a>Choice3</a>\
+    </div><div class="content">One text.</div></body></html>')
+    >>> doc2 = BeautifulSoup('<html><body><div class="container">\
+    <div class="menu"><a>Choice1</a><a>Choice2</a><a>Choice3</a>\
+    </div><div class="content">Another text.</div></body></html>')
+    >>> compare(doc1, doc2)
+    >>> doc2.get_text().strip()
+    'Another text.'
+    """
+    to_remove = []
+    for p,n in zip(previous.find_all(True), new.find_all(True)):
+        if p == n:
+            to_remove.append(n)
+    [tag.decompose() for tag in to_remove]
+
+def extract_content(previous, new):
+    new = BeautifulSoup(new)
+    extract_script_and_style(new)
+    if previous is not None:
+        previous = BeautifulSoup(previous)
+        extract_script_and_style(previous)
+        compare(previous, new)
+    return new.get_text(separator = u' ').strip()
 
 def read_front_page(newspaper_url, after, before):
     """Read the front page of a newspaper."""
     raw_html = access_page(newspaper_url)
-    text = just_content(raw_html)
-    text = cut_between(text, after, before)
+    previous = get_previous_frontpage(newspaper_url)
+    text = extract_content(previous, raw_html)
     # Save the file in the corpus folder to be able
     # to compare it with the next version
     save_file(newspaper_url, raw_html)
+    text = cut_between(text, after, before)
     return text
 
-def save_file(newspaper_url, text):
-    dest = os.path.join("corpus", newspaper_url[len(httpPrefix):])
+def save_file(url, text):
+    dest = os.path.join("corpus", unprefixed_url(url))
     with open(dest, 'w') as f:
         f.write(text)
 
@@ -51,36 +90,6 @@ def access_page(url):
     # TODO : raise a special exception if cannot be read
     return str(page.read().decode(encoding))
 
-def just_content(page):
-    """Remove every HTML from a webpage, get only the text.
-    That means what we will only want the value inside of body,
-    and we'll disregard any script.
-    We didn't use a SoupStrainer, because we wan't a LOT of things,
-    and we need to have something general enough so that we can
-    (hopefully !) use it for very different websites.
-
-    >>> just_content("<html><head>No</head><body><script>NO!</script>\
-            <style>NOOOO</style><h1>Just</h1><div>this<p>text</p></div>")
-    'Just this text'
-
-    >>> just_content("<html><head></head><body><script>No</script>\
-            <script>Still no</script><div>This</div>")
-    'This'
-
-    >>> just_content("<html><body><div>Well\\nHello !</div></body>")
-    'Well\\tHello !'
-
-    >>> just_content("<html><body>Well <div>hello !</div>")
-    'Well hello !'
-
-    """
-    soup = BeautifulSoup(page)
-    [tag.decompose() for tag in soup('script')]
-    [tag.decompose() for tag in soup('style')]
-    text = soup.body.get_text(separator = u' ').strip()
-    # Get rid of LF and double spaces
-    text = text.replace('\n','\t').replace(u'  ', u' ')
-    return text
 
 def cut_between(text, fromT, toT):
     """Only keep a text between FROM value and TO value.
