@@ -8,6 +8,7 @@ import datetime
 
 from database import Base
 
+
 def today_string():
     return strftime("%Y%m%d%H%M%S")
 
@@ -37,6 +38,23 @@ class Publication(Base):
     end = Column(String)
     front_pages = relationship("FrontPage", cascade="delete"
                             , backref="publication")
+
+    def prefix_url_if_needed(self):
+        """Append "http://" to a URL if it is missing.
+
+        >>> p = Publication(url = "www.google.com") 
+        >>> p.prefix_url_if_needed()
+        'http://www.google.com'
+
+        >>> p = Publication(url = "http://www.google.com") 
+        >>> p.prefix_url_if_needed()
+        'http://www.google.com'
+        """
+        if self.url.startswith("http"):
+            return self.url
+        else:
+            return "http://" + self.url
+
 
 class FrontPage(Base):
     __tablename__ = "frontpage"
