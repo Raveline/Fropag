@@ -51,8 +51,9 @@ def compare(previous, new):
     'Another text.'
     """
     to_remove = []
-    for p,n in zip(previous.find_all(True), new.find_all(True)):
-        if p == n:
+    tags_of_previous = previous.find_all(True)
+    for n in new.find_all(True):
+        if n in tags_of_previous:
             to_remove.append(n)
     [tag.decompose() for tag in to_remove]
 
@@ -73,7 +74,9 @@ def read_front_page(newspaper_url, after, before):
     # Save the file in the corpus folder to be able
     # to compare it with the next version
     save_file(newspaper_url, raw_html)
-    text = cut_between(text, after, before)
+    #text = cut_between(text, after, before)
+    print(text)
+    exit()
     return text
 
 def save_file(url, text):
