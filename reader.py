@@ -17,11 +17,10 @@ def unprefixed_url(newspaper_url):
     return newspaper_url[len(httpPrefix):]
 
 def get_previous_frontpage(url):
-    result = None
     dest= os.path.join("corpus", unprefixed_url(url))
-    with open(dest, 'r') as f:
-        result = f.read()
-    return result
+    if os.path.exists(dest):
+        with open(dest, 'r') as f:
+            return f.read()
 
 def extract_script_and_style(soup):
     """Remove the script and style tag from an HTML document
@@ -74,9 +73,6 @@ def read_front_page(newspaper_url, after, before):
     # Save the file in the corpus folder to be able
     # to compare it with the next version
     save_file(newspaper_url, raw_html)
-    #text = cut_between(text, after, before)
-    print(text)
-    exit()
     return text
 
 def save_file(url, text):
