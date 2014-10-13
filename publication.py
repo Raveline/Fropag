@@ -34,7 +34,7 @@ class Publication(Base):
     url = Column(String)
     rythm = Column(Enum('DAILY', 'EVERY_TWO_DAYS',
                         'WEEKLY', 'EVERY_TWO_WEEKS', 'MONTHLY',
-                        name='rythm'))
+                        name='rythm'), default='DAILY')
     front_pages = relationship("FrontPage", cascade="delete",
                                backref="publication")
 
