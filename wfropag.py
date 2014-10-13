@@ -1,3 +1,4 @@
+"""Web entry point for Fropag."""
 # -*- coding: utf-8 -*-
 import os
 from flask import Flask, render_template, request, session, redirect, url_for
@@ -7,7 +8,7 @@ from database import db_session
 from functools import wraps
 import config
 
-from core import get_publications, get_publication_tops, get_all_tops
+from core import get_publications, get_all_tops
 from core import delete_publication, modify_publication, follow_publication
 from core import get_word_data, boot_sql_alchemy, NonExistingDataException
 from core import modify_word, get_publication_frequency
@@ -38,8 +39,9 @@ assets.register(
 # UTILS
 #------------------------------
 def add_prelude(data):
-    data['propers'] = propers_prelude + data['propers'];
-    data['commons'] = commons_prelude + data['commons'];
+    """Add a legend to a set of data."""
+    data['propers'] = propers_prelude + data['propers']
+    data['commons'] = commons_prelude + data['commons']
 
 def prelude_stat_dictionary(stats):
     for publication, data in stats.items():
@@ -50,13 +52,14 @@ def prelude_stat_dictionary(stats):
 propers_prelude = [("Noms propres", "Décompte")]
 commons_prelude = [("Noms communs", "Décompte")]
 
-def login_required(f):
-    """Make sure the user is logged in. If not, redirct him to the login page."""
-    @wraps(f)
+def login_required(fun):
+    """Make sure the user is logged in. 
+    If not, redirect him to the login page."""
+    @wraps(fun)
     def decorated_function(*args, **kwargs):
         if not session.get('admin'):
             return redirect(url_for('index'))
-        return f(*args, **kwargs)
+        return fun(*args, **kwargs)
     return decorated_function
 
 @app.route('/admin')
@@ -106,8 +109,9 @@ def admin_word(word):
 @app.route('/admin/publications')
 @login_required
 def admin_publications():
-    return render_template('admin_publications.html', 
-                        publications = get_publications())
+    """Access to the publication administration menu."""
+    return render_template('admin_publications.html',
+                           publications=get_publications())
 
 @app.route('/publication/<int:p_id>')
 @login_required
