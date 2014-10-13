@@ -1,5 +1,6 @@
+'''Model of Fropag, containing the classes we deal with.'''
 # -*- coding: utf-8 -*-
-from sqlalchemy import Column, ForeignKey, Integer, String, Float
+from sqlalchemy import Column, ForeignKey, Integer, String, Float, Enum
 from sqlalchemy import DateTime, Boolean, UniqueConstraint
 from sqlalchemy.orm import relationship
 import datetime
@@ -31,6 +32,9 @@ class Publication(Base):
     id = Column(Integer, primary_key=True)
     name = Column(String)
     url = Column(String)
+    rythm = Column(Enum('DAILY', 'EVERY_TWO_DAYS',
+                        'WEEKLY', 'EVERY_TWO_WEEKS', 'MONTHLY',
+                        name='rythm'))
     front_pages = relationship("FrontPage", cascade="delete",
                                backref="publication")
 
