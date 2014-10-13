@@ -143,10 +143,9 @@ def modify_publication(id_p, name, url, start, end):
 # Create functions
 #------------------------------
 
-def follow_publication(name, url, start, end):
+def follow_publication(name, url):
     db_session.begin()
-    new_publication = Publication(name=name, url=url
-                        , start=start, end=end)
+    new_publication = Publication(name=name, url=url)
     db_session.add(new_publication)
     db_session.commit()
     return "Following publication {} at {} ".format(name, url)
