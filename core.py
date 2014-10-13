@@ -68,12 +68,15 @@ def get_publication_frequency(names):
     return results
 
 def count_frequency_for(p_id):
+    def to_frequency(occurences, measurements):
+        return round((occurences / measurements), 2)
+
     q = word_counting_query().filter(Publication.id == p_id)
     res = separate_propers_and_commons(q)
     n_frontpages = db_session.query(func.count(FrontPage.id)).\
             filter(FrontPage.publication_id == p_id).one()[0]
-    res['propers'] = [(p[0], p[1] / n_frontpages) for p in res['propers']]
-    res['commons'] = [(c[0], c[1] / n_frontpages) for c in res['commons']]
+    res['propers'] = [(p[0], to_frequency(p[1], n_frontpages)) for p in res['propers']]
+    res['commons'] = [(c[0], to_frequency(c[1], n_frontpages)) for c in res['commons']]
     return res
 
 def get_all_tops():
