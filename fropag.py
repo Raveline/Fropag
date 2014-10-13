@@ -1,7 +1,7 @@
+"""Console-level entry point."""
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 import argparse
-import time
 from core import follow_publication, delete_front_page, analyze_process
 from core import init_db, see_words_for, boot_sql_alchemy
 from config import ConfigException
@@ -46,7 +46,6 @@ if __name__ == "__main__":
     init.set_defaults(func=make_db)
     read.set_defaults(func=read_all)
     delete.set_defaults(func=delete_fp)
-    
     args = parser.parse_args()
 
     if hasattr(args, "func"):
