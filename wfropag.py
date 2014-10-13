@@ -121,10 +121,8 @@ def remove_publication(p_id):
     
 @app.route('/publication/add', methods=['POST'])
 def add_publication():
-    follow_publication(request.form['name']
-                    , request.form['url']
-                    , request.form['start']
-                    , request.form['end'])
+    follow_publication(request.form['name'],
+                       request.form['url'])
     return redirect(url_for('admin_publications'))
 
 @app.route('/publication/update', methods=['POST'])
