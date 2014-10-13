@@ -40,10 +40,17 @@ function box_publish(url) {
 function draw_double_bar_chart(dom_node, name, stats) {
     /** Will draw two bar_charts : one for the proper nouns,
     the other for the common ones.**/
-    proper = $(dom_node).children('.proper').get(0);
-    commons = $(dom_node).children('.commons').get(0);
+    box_node = $(dom_node);
+    proper = box_node.children('.proper').get(0);
+    commons = box_node.children('.commons').get(0);
+    add_time_scale(box_node, name, stats['mindate'], stats['maxdate']);
     draw_bar_chart(proper, name, stats['propers']);
     draw_bar_chart(commons, name, stats['commons']);
+}
+
+function add_time_scale(dom_node, name, min, max) {
+    text = ['<div class="legend">', 'Entre le ', min, ' et ', max, '</div>'].join('');
+    dom_node.append(text);
 }
 
 function draw_bar_chart(dom_node, name, stats) {

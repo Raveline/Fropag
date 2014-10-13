@@ -86,14 +86,20 @@ def get_publications():
     return db_session.query(Publication).all()
 
 def word_counting_query():
-    q = db_session.query(Word.word, func.sum(WordCount.count).label('sumcount'))
+    q = db_session.query(Word.word, func.sum(WordCount.count).label('sumcount')
+                        ,func.min(FrontPage.time_of_publication)
+                        ,func.max(FrontPage.time_of_publication))
     q = join_from_words_to_publication(q)
     return q.group_by(Word.word).order_by(desc('sumcount'))
 
 def separate_propers_and_commons(query):
     results = {}
-    results['propers'] = query.filter(Word.proper == True).all()[:10]
-    results['commons'] = query.filter(Word.proper == False).all()[:10]
+    propers = query.filter(Word.proper == True).all()[:10]
+    results['propers'] = [(r[0], r[1]) for r in propers]
+    results['commons'] = [(r[0], r[1]) for r
+                         in query.filter(Word.proper == False).all()[:10]]
+    results['mindate'] = propers[0][2].strftime('%d/%m/%Y')
+    results['maxdate'] = propers[0][3].strftime('%d/%m/%Y')
     return results
 
 def see_words_for(publication_name, proper, limit = 10):
