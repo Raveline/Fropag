@@ -200,10 +200,12 @@ def analyze_process():
     save_all(results)
     return "Read and analyzed {} front pages in {} secs.".format(len(publications), str(time.time() - t0))
 
-def read_and_analyze(publication, q):
-    page = read_front_page(publication.url, publication.start, publication.end)
+def read_and_analyze(publication, queue):
+    """Read a frontpage using the reader module.
+    Put the result in a queue."""
+    page = read_front_page(publication.url)
     stats = get_stats(page)
-    q.put((publication, stats))
+    queue.put((publication, stats))
 
 def get_word_id_or_add_it(w, p):
     """Get the id of w in the database.
@@ -222,6 +224,7 @@ def get_word_id_or_add_it(w, p):
 #------------------------------
 def delete_stuff(q):
     try:
+        db_session.begin()
         db_session.delete(q.one())
         db_session.commit()
         return "Deleted."
