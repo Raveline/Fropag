@@ -5,22 +5,31 @@ and simply render a Counter object for this words.
 External modules should only have to use the read_front_page
 method."""
 
-from bs4 import BeautifulSoup, Tag, NavigableString
-from collections import Counter
+from bs4 import BeautifulSoup
 import urllib.request
-import re
 import os
 
-httpPrefix = "http://"
+HTTP_PREFIX = "http://"
 
 def unprefixed_url(newspaper_url):
-    return newspaper_url[len(httpPrefix):]
+    """Given a string starting with "http://",
+    return the URL without the protocol.
+    Note : this should be improved to handle
+    https and possiply other protocols.
+
+    >>> unprefixed_url("http://www.google.com")
+    'www.google.com'
+    """
+    return newspaper_url[len(HTTP_PREFIX):]
 
 def get_previous_frontpage(url):
-    dest= os.path.join("corpus", unprefixed_url(url))
+    """Read the last recorded version of this frontpage,
+    that should have been saved in the corpus directory.
+    If it cannot be found, will return None."""
+    dest = os.path.join("corpus", unprefixed_url(url))
     if os.path.exists(dest):
-        with open(dest, 'r') as f:
-            return f.read()
+        with open(dest, 'r') as previous_file:
+            return previous_file.read()
 
 def extract_script_and_style(soup):
     """Remove the script and style tag from an HTML document
@@ -51,21 +60,27 @@ def compare(previous, new):
     """
     to_remove = []
     tags_of_previous = previous.find_all(True)
-    for n in new.find_all(True):
-        if n in tags_of_previous:
-            to_remove.append(n)
+    for new_tag in new.find_all(True):
+        if new_tag in tags_of_previous:
+            to_remove.append(new_tag)
     [tag.decompose() for tag in to_remove]
 
 def extract_content(previous, new):
+    """Get two HTML documents, previous and new and try to
+    transform them to BeautifulSoup.
+    If the previous one exists, compare it to the new one, to
+    remove any similarities - this will allow us to remove most
+    of the template of the page.
+    Then, get the text of the document."""
     new = BeautifulSoup(new)
     extract_script_and_style(new)
     if previous is not None:
         previous = BeautifulSoup(previous)
         extract_script_and_style(previous)
         compare(previous, new)
-    return new.get_text(separator = u' ').strip()
+    return new.get_text(separator=u' ').strip()
 
-def read_front_page(newspaper_url, after, before):
+def read_front_page(newspaper_url):
     """Read the front page of a newspaper."""
     raw_html = access_page(newspaper_url)
     previous = get_previous_frontpage(newspaper_url)
@@ -76,9 +91,11 @@ def read_front_page(newspaper_url, after, before):
     return text
 
 def save_file(url, text):
+    """Save a version of an HTML version, given its url
+    and its content, in the "corpus" directory."""
     dest = os.path.join("corpus", unprefixed_url(url))
-    with open(dest, 'w') as f:
-        f.write(text)
+    with open(dest, 'w') as saving_file:
+        saving_file.write(text)
 
 def access_page(url):
     """Access a page at a given URL."""
@@ -90,9 +107,9 @@ def access_page(url):
     return str(page.read().decode(encoding))
 
 
-def cut_between(text, fromT, toT):
+def cut_between(text, from_t, to_t):
     """Only keep a text between FROM value and TO value.
-    If FROM does not exist, start from beginning. 
+    If FROM does not exist, start from beginning.
     If END does not exist, keep till the end.
 
     >>> cut_between('Shall I compare thee ? To...', 'compare', '?')
@@ -105,12 +122,12 @@ def cut_between(text, fromT, toT):
     'thee to a summer day'
     """
 
-    from_pos = text.find(fromT)
-    to_pos = text.find(toT)
+    from_pos = text.find(from_t)
+    to_pos = text.find(to_t)
     if from_pos == -1:
         from_pos = 0
     else:
-        from_pos = from_pos + len(fromT)
+        from_pos = from_pos + len(from_t)
     if to_pos == -1:
         to_pos = len(text)
     return text[from_pos:to_pos].strip()
