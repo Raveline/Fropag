@@ -1,5 +1,5 @@
-"""Console-level entry point."""
 #!/usr/bin/env python
+"""Console-level entry point."""
 # -*- coding: utf-8 -*-
 import argparse
 import os
