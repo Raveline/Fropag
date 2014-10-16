@@ -161,7 +161,7 @@ def separate_propers_and_commons(query):
     results['commons'] = [(r[0], r[1]) for r
                          in query.filter(Word.proper == False).all()[:10]]
     # For new publications
-    if len(propers) > 0 and propers[0] > 4:
+    if len(propers) > 0 and len(propers[0]) > 4:
         results['mindate'] = propers[0][2].strftime('%d/%m/%Y')
         results['maxdate'] = propers[0][3].strftime('%d/%m/%Y')
     return results

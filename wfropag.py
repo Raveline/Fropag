@@ -11,7 +11,7 @@ import config
 from core import get_publications, get_all_tops
 from core import delete_publication, modify_publication, follow_publication
 from core import get_word_data, boot_sql_alchemy, NonExistingDataException
-from core import modify_word, get_publication_frequency
+from core import modify_word, get_publication_frequency, get_history_for
 
 app = Flask(__name__)
 app.secret_key = config.SECRET_KEY
@@ -82,11 +82,35 @@ def index():
     return render_template('index.html'
         , publications = [p.name for p in get_publications()])
 
+@app.route('/word/<string:word>')
+def word_info(word):
+    try:
+        w = get_word_data(word)
+        forbidden_info = "Ce mot est suivi pour toutes les publications."
+        forbidden_pubs = [p['name'] for p in w['publications'] if p['forbidden']]
+        if w['forbidden_all']:
+            forbidden_info = "Pour des raisons techniques, nous ne comptons\
+            normalement jamais ce mot. Voici toutefois son historique."
+        elif len(forbidden_pubs) > 0:
+            forbidden_info = "Pour des raisons techniques, ce mot n'est pas\
+            suivi pour les publications suivantes : "
+            forbidden_info += ','.join(w['publications'])
+        return render_template('word.html',
+                               word=word,
+                               forbidden_info=forbidden_info)
+    except NonExistingDataException:
+        return render_template('word.html')
+
 @app.route('/top_words_all/')
 def get_top_words_all():
     p = get_all_tops()
     add_prelude(p)
     return jsonify(p)
+
+@app.route('/word/history/<string:word>')
+def get_history_for_word(word):
+    info = get_history_for(word)
+    return jsonify({'success': True, 'data' : info})
 
 @app.route('/top_words_for/')
 def get_top_words_for():
@@ -113,7 +137,7 @@ def admin_publications():
     return render_template('admin_publications.html',
                            publications=get_publications())
 
-@app.route('/publication/<int:p_id>')
+@app.route('/publication/delete/<int:p_id>')
 @login_required
 def remove_publication(p_id):
     delete_publication(p_id)
@@ -150,4 +174,3 @@ if __name__ == "__main__":
 @app.teardown_appcontext
 def shutdown_session(exception=None):
     db_session.remove()
-
