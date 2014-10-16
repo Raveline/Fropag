@@ -3,6 +3,7 @@
 # -*- coding: utf-8 -*-
 import argparse
 import os
+import logging
 from core import follow_publication, delete_front_page, analyze_process
 from core import init_db, see_words_for, boot_sql_alchemy
 from config import ConfigException
@@ -24,7 +25,11 @@ def view_words(args):
 def add_publication(args):
     return follow_publication(args.name, args.url)
 
+def init_logging():
+    logging.basicConfig(filename='fropag.log', level=logging.INFO)
+
 def main():
+    init_logging()
     parser = argparse.ArgumentParser()
     subparsers = parser.add_subparsers()
 

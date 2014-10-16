@@ -2,6 +2,7 @@
 import multiprocessing
 import time
 import itertools
+import logging
 from sqlalchemy import func, desc, distinct
 from sqlalchemy import text
 from sqlalchemy.sql.expression import literal, or_, and_
@@ -10,8 +11,8 @@ from database import Base, engine, get_engine, db_session
 from publication import Publication, Word, FrontPage, WordCount, Forbidden
 import config
 
-from reader import read_front_page
-from analyze import get_stats
+from reader import read_front_page, UnreadablePageException
+from analyze import get_stats, EmptyContentException
 
 # EXCEPTIONS
 #------------------------------
@@ -260,15 +261,23 @@ def analyze_process():
         processes.append(multiprocessing.Process(target=read_and_analyze, args=(pub, results,)))
     [p.start() for p in processes]
     [p.join() for p in processes]
+    logger.info("Finished reading.")
     save_all(results)
     return "Read and analyzed {} front pages in {} secs.".format(len(publications), str(time.time() - t0))
 
 def read_and_analyze(publication, queue):
     """Read a frontpage using the reader module.
     Put the result in a queue."""
-    page = read_front_page(publication.url)
-    stats = get_stats(page)
-    queue.put((publication, stats))
+    logging.info("Reading frontpage for %s at %s", publication.name,
+                 publication.url)
+    try:
+        page = read_front_page(publication.url)
+        stats = get_stats(page)
+        queue.put((publication, stats))
+    except UnreadablePageException:
+        logging.error('This page cannot be read.')
+    except EmptyContentException:
+        logging.error('No content for this page.')
 
 def get_word_id_or_add_it(w, p):
     """Get the id of w in the database.
@@ -278,6 +287,7 @@ def get_word_id_or_add_it(w, p):
         return found.id
     else:
         new_word = Word(word = w, proper = p)
+        logging.debug("Adding word %s", w)
         db_session.begin()
         db_session.add(new_word)
         db_session.commit()
