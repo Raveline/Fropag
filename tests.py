@@ -1,4 +1,5 @@
 import unittest
+import datetime
 from collections import Counter
 import config
 from sqlalchemy import func
@@ -23,7 +24,7 @@ class BasicHighLevelFunctions(DBTesting):
     def test_follow_publication(self):
         test_url = "http://test.test"
         test_name = "Test publication"
-        follow_publication(test_name, test_url, "start", "end")
+        follow_publication(test_name, test_url)
         try:
             # The proper publication has been inserted
             q = db_session.query(Publication).filter(Publication.name == test_name).one()
@@ -36,8 +37,8 @@ class BasicHighLevelFunctions(DBTesting):
 class DatabaseExtraction(DBTesting):
     def follow_two_publications(self):
         # Insert two publications for every test requiring some publications
-        follow_publication("Test1", "", "", "")
-        follow_publication("Test2", "", "", "")
+        follow_publication("Test1", "")
+        follow_publication("Test2", "")
         self.pub1 = db_session.query(Publication).filter(Publication.name == "Test1").one().id
         self.pub2 = db_session.query(Publication).filter(Publication.name == "Test2").one().id
 
@@ -45,10 +46,16 @@ class DatabaseExtraction(DBTesting):
         # Add three frontpages for every test requiring them
         # Frontpage 1 and 2 for pub1
         db_session.begin()
-        self.nfp1 = FrontPage(publication_id = self.pub1) 
-        self.nfp2 = FrontPage(publication_id = self.pub1)
+        date1 = datetime.datetime(1999, 1, 1, 12,12,12)
+        date2 = datetime.datetime(1999, 1, 2, 12,12,12)
+        date3 = datetime.datetime(1999, 1, 1, 12,12,12)
+        self.nfp1 = FrontPage(publication_id = self.pub1,
+                              time_of_publication = date1) 
+        self.nfp2 = FrontPage(publication_id = self.pub1,
+                              time_of_publication = date2)
         # Frontpage 3 for pub2
-        self.nfp3 = FrontPage(publication_id = self.pub2)
+        self.nfp3 = FrontPage(publication_id = self.pub2,
+                              time_of_publication = date3)
         db_session.add(self.nfp1)
         db_session.add(self.nfp2)
         db_session.add(self.nfp3)
@@ -69,7 +76,8 @@ class DatabaseExtraction(DBTesting):
         save_words(self.nfp2.id, proper_counter2, common_counter2)
         save_words(self.nfp3.id, proper_counter3, common_counter3)
         # Here we are !
-        result = dict(see_words_for("Test1", False))
+        result = [v[:2] for v in see_words_for("Test1", False)]
+        result = dict(result)
         # Are the proper words here ?
         self.assertTrue('word1' in result.keys()
                     , "Every words in this publication should be there")
@@ -178,6 +186,28 @@ class DatabaseExtraction(DBTesting):
         self.assertEqual(resP2['common'], 2)
         self.assertEqual(resP2['frequent'], 5)
         self.assertTrue('rare' not in resP2.keys())
+
+    def test_timed_word(self):
+        self.follow_two_publications()
+        self.create_three_frontpages()
+        common_counter1 = Counter({'old' : 1, 'peaking': 1})
+        common_counter2 = Counter({'peaking':10})
+        common_counter3 = Counter({'new' : 1, 'old':1})
+        save_words(self.nfp1.id, Counter(), common_counter1)
+        save_words(self.nfp2.id, Counter(), common_counter2)
+        save_words(self.nfp3.id, Counter(), common_counter3)
+        old = get_history_for('old')
+        peaking = get_history_for('peaking')
+        new = get_history_for('new')
+        # Old counter is at 1 for the first day
+        self.assertEqual(old[1][1], 1)
+        # Peaking counter is at 1 for the first day, for the first publication
+        self.assertEqual(peaking[1][1], 1)
+        # Then at 10
+        self.assertEqual(peaking[2][1], 10)
+        # And at 0 every days for the second publication
+        self.assertEqual(peaking[1][2], 0)
+        self.assertEqual(peaking[1][2], 0)
 
 if __name__ == "__main__":
     unittest.main()

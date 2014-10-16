@@ -1,7 +1,9 @@
 # -*- coding: utf-8 -*-
 import multiprocessing
 import time
+import itertools
 from sqlalchemy import func, desc, distinct
+from sqlalchemy import text
 from sqlalchemy.sql.expression import literal, or_, and_
 from sqlalchemy.orm.exc import NoResultFound
 from database import Base, engine, get_engine, db_session
@@ -79,6 +81,66 @@ def count_frequency_for(p_id):
     res['commons'] = [(c[0], to_frequency(c[1], n_frontpages)) for c in res['commons']]
     return res
 
+def get_history_for(word):
+    # This is way to tiresome to do with ORM.
+    # So... let's do it the old way !
+    query = """select pubs.pubdate,
+                      p.name,
+                      coalesce(cnt.count, 0)
+               from 
+                    (select c.count, 
+                            to_char(f.time_of_publication, 'YYYY/MM/DD') 
+                            as pdate,
+                            p.id from wordcount c 
+                            left join frontpage f 
+                                on f.id = c.frontpage_id 
+                            left join publication p 
+                                on f.publication_id = p.id 
+                            left join word w 
+                                on c.word_id = w.id 
+                     where word = :x) cnt 
+                full outer join 
+                    (select 
+                        distinct to_char(f.time_of_publication, 'YYYY/MM/DD')
+                            as pubdate, 
+                        p.id from frontpage f 
+                        cross join publication p) pubs 
+                on cnt.id = pubs.id 
+                and cnt.pdate = pubs.pubdate
+                left outer join publication p on p.id = pubs.id;"""
+    return to_stats(engine.execute(text(query), x=word).fetchall(), "date")
+
+def to_stats(elems, first_column_name):
+    """Given a list of tuples, typically a SQL query result,
+    put the 2nd colum in top.
+    >>> a = [('date1', 'newspaper1', 2),
+    ... ('date1', 'newspaper2', 3),
+    ... ('date1', 'newspaper3', 4),
+    ... ('date2', 'newspaper1', 5),
+    ... ('date2', 'newspaper2', 6),
+    ... ('date2', 'newspaper3', 7)]
+    >>> to_stats(a, 'date')
+    [['date', 'newspaper1', 'newspaper2', 'newspaper3'], ['date1', 2, 3, 4], ['date2', 5, 6, 7]]
+    """
+    # Sort
+    by1 = sorted(elems, key=lambda k : k[1])
+    by0 = sorted(elems, key=lambda k : k[0])
+    # Extract the 2nd column
+    column2 = itertools.groupby(by1, lambda x: x[1])
+    column2 = [k for k, v in column2]
+    column2.insert(0, first_column_name)
+    # Extract data without the 2nd column
+    grouped = itertools.groupby(by0, lambda y: y[0])
+    res = []
+    for k, v in grouped:
+        list_value = list(v)
+        pertinent = [list(v)[2:] for v in list_value]
+        pertinent = list(itertools.chain(*pertinent))
+        pertinent.insert(0, k)
+        res.append(pertinent)
+    # Concatenate both
+    return [column2] + res
+
 def get_all_tops():
     return separate_propers_and_commons(word_counting_query())
 
@@ -98,8 +160,10 @@ def separate_propers_and_commons(query):
     results['propers'] = [(r[0], r[1]) for r in propers]
     results['commons'] = [(r[0], r[1]) for r
                          in query.filter(Word.proper == False).all()[:10]]
-    results['mindate'] = propers[0][2].strftime('%d/%m/%Y')
-    results['maxdate'] = propers[0][3].strftime('%d/%m/%Y')
+    # For new publications
+    if len(propers) > 0 and propers[0] > 4:
+        results['mindate'] = propers[0][2].strftime('%d/%m/%Y')
+        results['maxdate'] = propers[0][3].strftime('%d/%m/%Y')
     return results
 
 def see_words_for(publication_name, proper, limit = 10):
