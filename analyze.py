@@ -23,6 +23,15 @@ from nltk.tag.stanford import POSTagger
 from publication import Publication
 from collections import Counter
 
+class EmptyContentException(Exception):
+    '''This exception should be called if an empty frontpage
+    is detected. This is most likely due to two successive
+    calls to the reader, so that the comparison function between
+    the older and the newer version returned an empty result.'''
+    def __init__(self, value):
+        self.value = value
+    def __str__(self):
+        return repr(self.value)
 
 # Please note : these are the french categories.
 # To remove english tags, you'll need to add the proper
@@ -62,8 +71,10 @@ def get_stats(text):
     filtered = trim_unwanted_tags(tagged)
     proper = [w[0].capitalize() for w in filtered if w[1] == proper_nouns]
     others = [w[0].lower() for w in filtered if w[1] != proper_nouns]
-    return (to_counter(proper), to_counter(others)
-           ,get_lexical_richness(proper))
+    if len(others) is None:
+        raise EmptyContentException("No content in this frontpage.")
+    return (to_counter(proper), to_counter(others),
+            get_lexical_richness(others))
 
 def to_counter(words):
     return Counter(words)
