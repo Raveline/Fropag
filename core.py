@@ -51,10 +51,10 @@ def get_publication_tops(names):
     results = {}
     for (p_id, p_name) in db_session.query(Publication.id, Publication.name).\
                         filter(Publication.name.in_(names)):
-        results[p_name] = count_words_for(p_id, p_name)
+        results[p_name] = count_words_for(p_id)
     return results
 
-def count_words_for(pub_id):
+def count_words_for(p_id):
     q = word_counting_query().filter(Publication.id == p_id)
     return separate_propers_and_commons(q)
 
@@ -143,23 +143,38 @@ def get_all_tops():
 def get_publications():
     return db_session.query(Publication).all()
 
+def get_real_min_and_max(q):
+    '''From the word_counting_query or a similar one where
+    min and max of dates won't be absolute, due to the grouping,
+    subquery this query in order to get the real absolutes min
+    and max.'''
+    subq = q.subquery()
+    newq = db_session.query(func.min(subq.c.mindate),
+                            func.max(subq.c.maxdate))
+                      
+    return newq.first()
+
 def word_counting_query():
-    q = db_session.query(Word.word, func.sum(WordCount.count).label('sumcount')
-                        ,func.min(FrontPage.time_of_publication)
-                        ,func.max(FrontPage.time_of_publication))
+    q = db_session.query(Word.word.label('word'),
+                         func.sum(WordCount.count).label('sumcount'),
+                         func.min(FrontPage.time_of_publication).\
+                         label('mindate'),
+                         func.max(FrontPage.time_of_publication).\
+                         label('maxdate'))
     q = join_from_words_to_publication(q)
     return q.group_by(Word.word).order_by(desc('sumcount'))
 
 def separate_propers_and_commons(query):
     results = {}
     propers = query.filter(Word.proper == True).all()[:10]
+    commons = query.filter(Word.proper == False).all()[:10]
     results['propers'] = [(r[0], r[1]) for r in propers]
-    results['commons'] = [(r[0], r[1]) for r
-                         in query.filter(Word.proper == False).all()[:10]]
+    results['commons'] = [(r[0], r[1]) for r in commons]
     # For new publications
-    if len(propers) > 0 and len(propers[0]) > 4:
-        results['mindate'] = propers[0][2].strftime('%d/%m/%Y')
-        results['maxdate'] = propers[0][3].strftime('%d/%m/%Y')
+    if len(commons) > 0:
+        minmax = get_real_min_and_max(query)
+        results['mindate'] = minmax[0].strftime('%d/%m/%Y')
+        results['maxdate'] = minmax[1].strftime('%d/%m/%Y')
     return results
 
 def see_words_for(publication_name, proper, limit = 10):

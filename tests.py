@@ -8,6 +8,7 @@ from sqlalchemy.orm import sessionmaker, scoped_session
 from database import *
 from publication import *
 from core import *
+from read_process import save_words
 
 class DBTesting(unittest.TestCase):
     def setUp(self):
@@ -61,10 +62,9 @@ class DatabaseExtraction(DBTesting):
         db_session.add(self.nfp3)
         db_session.commit()
 
-    def test_get_words(self):
+    def add_basic_data(self):
         self.follow_two_publications()
         self.create_three_frontpages()
-        # Counters to use
         proper_counter1 = Counter({'proper1' : 1})
         common_counter1 = Counter({'word1' : 2, 'word2' : 1})
         common_counter2 = Counter({'word1' : 1, 'word3' : 4})
@@ -75,7 +75,21 @@ class DatabaseExtraction(DBTesting):
         save_words(self.nfp1.id, proper_counter1, common_counter1)
         save_words(self.nfp2.id, proper_counter2, common_counter2)
         save_words(self.nfp3.id, proper_counter3, common_counter3)
-        # Here we are !
+
+    def test_get_dates(self):
+        '''Bug tracked the 10/17/2014 : dates did not appear
+        on the main page.'''
+        self.add_basic_data()
+        result = get_publication_tops(["Test1", "Test2"])
+        test1 = result['Test1']
+        test2 = result['Test2']
+        self.assertEqual(test1['mindate'], '01/01/1999')
+        self.assertEqual(test1['maxdate'], '02/01/1999')
+        self.assertEqual(test2['mindate'], '01/01/1999')
+        self.assertEqual(test2['maxdate'], '01/01/1999')
+
+    def test_get_words(self):
+        self.add_basic_data()
         result = [v[:2] for v in see_words_for("Test1", False)]
         result = dict(result)
         # Are the proper words here ?
