@@ -12,13 +12,24 @@ from analyze import get_stats, EmptyContentException
 
 _log = logging.getLogger('fropag.read')
 
-def read():
-    """Read every frontpages followed.
-    Get the followed publications from the database,
-    then read them. This being a lengthy process, we'll
-    try and multiprocess it to see if it helps."""
-    time0 = time.time()
+def read_only(pubs):
+    '''Read only a list of publications.'''
+    _log.info("Reading only " + ','.join(pubs))
+    publications = db_session.query(Publication).\
+                    filter(Publication.name.in_(pubs)).all()
+    read(publications)
+
+def read_every():
+    '''Read every publications.'''
+    _log.info("Reading every publications.")
     publications = db_session.query(Publication).all()
+    read(publications)
+
+def read(publications):
+    '''Read the publications received as parameter.
+    This being a lengthy process, we'll try and multiprocess 
+    it to improve the time it takes.'''
+    time0 = time.time()
     processes = []
     results = multiprocessing.Queue()
     logs = multiprocessing.Queue()
@@ -58,7 +69,7 @@ def read_and_analyze(publication, queue, log_queue):
         sublog.error('%s cannot be read.', publication.name)
         return
     except EmptyContentException:
-        _log.error('No content for %s.', publication.name)
+        sublog.error('No content for %s.', publication.name)
         return
 
 def save_words(publication_id, propers, commons):

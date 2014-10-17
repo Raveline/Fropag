@@ -7,7 +7,7 @@ import logging
 import logging.handlers
 from core import follow_publication, delete_front_page
 from core import init_db, see_words_for, boot_sql_alchemy
-from read_process import read
+from read_process import read_only, read_every
 from config import ConfigException
 
 def set_up(args):
@@ -18,8 +18,11 @@ def set_up(args):
 def delete_fp(args):
     return delete_front_page(args.id)   
 
-def read_all(args):
-    return read()
+def read_publications(args):
+    if args.pub and len(args.pub) > 0:
+        return read_only(args.pub)
+    else:
+        return read_every()
 
 def view_words(args):
     return see_words_for(args.publication_name, args.proper, args.limit)
@@ -61,12 +64,19 @@ def main():
                         help="Id of the front page to delete")
 
     init = subparsers.add_parser("init", help="Setup database.")
+
     read = subparsers.add_parser("read",
                                  help="Read and analyze followed frontpages.")
+    read.add_argument("--pub",
+                      action='append',
+                      help="Specify that you want to read only\
+                            one given publication. Can be chained.\
+                            Use the publication names.")
+
     follow.set_defaults(func=add_publication)
     words.set_defaults(func=view_words)
     init.set_defaults(func=set_up)
-    read.set_defaults(func=read_all)
+    read.set_defaults(func=read_publications)
     delete.set_defaults(func=delete_fp)
     args = parser.parse_args()
 
