@@ -66,7 +66,7 @@ def read_and_analyze(publication, queue, log_queue):
         queue.put((publication, stats))
         sublog.info('Finished reading %s', publication.name)
     except UnreadablePageException as exception:
-        sublog.error('%s cannot be read.', publication.name)
+        sublog.error('%s cannot be read : %s', publication.name, exception)
         return
     except EmptyContentException:
         sublog.error('No content for %s.', publication.name)
