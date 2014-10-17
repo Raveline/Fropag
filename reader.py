@@ -117,7 +117,12 @@ def access_page(url):
         raise UnreadablePageException(error)
     encoding = page.headers.get_param('charset')
     if encoding is None:
-        encoding = 'utf-8'
+        # let's try with the keys...
+        keys = page.headers.keys()
+        if 'charset' in keys:
+            encoding = page.headers.values()[keys.index('charset')]
+        else:
+            encoding = 'utf-8'
     try:
         result = str(page.read().decode(encoding))
         return result
