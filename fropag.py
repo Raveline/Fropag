@@ -4,8 +4,10 @@
 import argparse
 import os
 import logging
-from core import follow_publication, delete_front_page, analyze_process
+import logging.handlers
+from core import follow_publication, delete_front_page
 from core import init_db, see_words_for, boot_sql_alchemy
+from read_process import read
 from config import ConfigException
 
 def set_up(args):
@@ -17,7 +19,7 @@ def delete_fp(args):
     return delete_front_page(args.id)   
 
 def read_all(args):
-    return analyze_process()
+    return read()
 
 def view_words(args):
     return see_words_for(args.publication_name, args.proper, args.limit)
@@ -26,7 +28,14 @@ def add_publication(args):
     return follow_publication(args.name, args.url)
 
 def init_logging():
-    logging.basicConfig(filename='fropag.log', level=logging.INFO)
+    root = logging.getLogger('fropag')
+    root.setLevel(logging.DEBUG)
+    form = logging.Formatter('{asctime}-{name}-{levelname}-{message}',
+                             style='{')
+    handler = logging.FileHandler(filename='fropag.log',
+                                  mode='w')
+    handler.setFormatter(form)
+    root.addHandler(handler)
 
 def main():
     init_logging()

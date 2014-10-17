@@ -1,18 +1,13 @@
 # -*- coding: utf-8 -*-
-import multiprocessing
-import time
 import itertools
 import logging
 from sqlalchemy import func, desc, distinct
 from sqlalchemy import text
 from sqlalchemy.sql.expression import literal, or_, and_
 from sqlalchemy.orm.exc import NoResultFound
-from database import Base, engine, get_engine, db_session
+from database import Base, get_engine, set_engine, db_session
 from publication import Publication, Word, FrontPage, WordCount, Forbidden
 import config
-
-from reader import read_front_page, UnreadablePageException
-from analyze import get_stats, EmptyContentException
 
 # EXCEPTIONS
 #------------------------------
@@ -109,7 +104,7 @@ def get_history_for(word):
                 on cnt.id = pubs.id 
                 and cnt.pdate = pubs.pubdate
                 left outer join publication p on p.id = pubs.id;"""
-    return to_stats(engine.execute(text(query), x=word).fetchall(), "date")
+    return to_stats(get_engine().execute(text(query), x=word).fetchall(), "date")
 
 def to_stats(elems, first_column_name):
     """Given a list of tuples, typically a SQL query result,
@@ -215,83 +210,7 @@ def follow_publication(name, url):
     db_session.commit()
     return "Following publication {} at {} ".format(name, url)
 
-def save_all(q):
-    while not q.empty():
-        pair = q.get()
-        # This will get us a pair (Publication, (Stats))
-        publication = pair[0]
-        stats = pair[1]
-        new_front_page = FrontPage(publication_id = publication.id
-                              ,lexical_richness = stats[2])
-        db_session.begin()
-        db_session.add(new_front_page)
-        db_session.commit()
-        save_words(new_front_page.id, stats[0], stats[1])
 
-def save_words(publication_id, propers, commons):
-        # Get id for words - this is going to be slow - particularly for new words
-        # but session cache-like abilities could help us
-        proper_nouns = [(get_word_id_or_add_it(w[0], True), w[1]) 
-                        for w in propers.items()]
-        common_nouns = [(get_word_id_or_add_it(w[0], False), w[1]) 
-                        for w in commons.items()]
-
-        # This being bulk inserts, we're going to use SqlAlchemy Core
-        if common_nouns:
-            engine.execute(
-                WordCount.__table__.insert(),
-                [{'count' : w[1], 'frontpage_id' : publication_id
-                ,'word_id' : w[0]} for w in common_nouns])
-        if proper_nouns:
-            engine.execute(
-                WordCount.__table__.insert(),
-                [{'count' : w[1], 'frontpage_id' : publication_id
-                ,'word_id' : w[0]} for w in proper_nouns])
-
-def analyze_process():
-    """Read every frontpages followed.
-    Get the followed publications from the database,
-    then read them. This being a lengthy process, we'll
-    try and multiprocess it to see if it helps."""
-    t0 = time.time()
-    publications = db_session.query(Publication).all()
-    processes = []
-    results = multiprocessing.Queue()
-    for pub in publications:
-        processes.append(multiprocessing.Process(target=read_and_analyze, args=(pub, results,)))
-    [p.start() for p in processes]
-    [p.join() for p in processes]
-    logger.info("Finished reading.")
-    save_all(results)
-    return "Read and analyzed {} front pages in {} secs.".format(len(publications), str(time.time() - t0))
-
-def read_and_analyze(publication, queue):
-    """Read a frontpage using the reader module.
-    Put the result in a queue."""
-    logging.info("Reading frontpage for %s at %s", publication.name,
-                 publication.url)
-    try:
-        page = read_front_page(publication.url)
-        stats = get_stats(page)
-        queue.put((publication, stats))
-    except UnreadablePageException:
-        logging.error('This page cannot be read.')
-    except EmptyContentException:
-        logging.error('No content for this page.')
-
-def get_word_id_or_add_it(w, p):
-    """Get the id of w in the database.
-    If w doesn't exist, insert it and give return its id."""
-    found = db_session.query(Word).filter_by(word = w, proper = p).first()
-    if found:
-        return found.id
-    else:
-        new_word = Word(word = w, proper = p)
-        logging.debug("Adding word %s", w)
-        db_session.begin()
-        db_session.add(new_word)
-        db_session.commit()
-        return new_word.id
 
 # Delete
 #------------------------------
@@ -318,14 +237,13 @@ def delete_front_page(fp_id):
 # Utilities (should move soon)
 #------------------------------
 def boot_sql_alchemy():
-    global engine
-    engine = get_engine(config.DB_URI
-                    ,config.DB_USER
-                    ,config.DB_PASSWORD
-                    ,config.DB_HOST
-                    ,config.DB_PORT
-                    ,config.DB_NAME)
+    set_engine(config.DB_URI,
+               config.DB_USER,
+               config.DB_PASSWORD,
+               config.DB_HOST,
+               config.DB_PORT,
+               config.DB_NAME)
     
 def init_db():
-    Base.metadata.create_all(engine)
+    Base.metadata.create_all(get_engine())
     return "Created database."

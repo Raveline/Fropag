@@ -8,19 +8,18 @@ method."""
 from bs4 import BeautifulSoup
 import urllib.request
 from urllib.error import HTTPError
-import logging
 import os
 
 HTTP_PREFIX = "http://"
 
 class UnreadablePageException(Exception):
     '''This exception should be raised when a frontpage
-    cannot be read, whatever the reason. It will contain
-    the problematic url.'''
-    def __init__(self, unreadable_url):
-        self.unprefixed_url = unreadable_url
+    cannot be read. The exception should carry a root
+    cause, so it can be caught and logged.'''
+    def __init__(self, value):
+        self.value = value
     def __str__(self):
-        return repr(self.unprefixed_url)
+        return repr(self.value)
 
 def unprefixed_url(newspaper_url):
     """Given a string starting with "http://",
@@ -89,13 +88,10 @@ def extract_content(previous, new):
         previous = BeautifulSoup(previous)
         extract_script_and_style(previous)
         compare(previous, new)
-    else:
-        logging.warning('No previous frontpage detected.')
     return new.get_text(separator=u' ').strip()
 
 def read_front_page(newspaper_url):
     """Read the front page of a newspaper."""
-    logging.info('Reading : %s', newspaper_url)
     raw_html = access_page(newspaper_url)
     previous = get_previous_frontpage(newspaper_url)
     text = extract_content(previous, raw_html)
@@ -109,7 +105,6 @@ def save_file(url, text):
     and its content, in the "corpus" directory.'''
     dest = os.path.join("corpus", unprefixed_url(url))
     with open(dest, 'w') as saving_file:
-        logging.info('Writing a copy of the page in %s', dest)
         saving_file.write(text)
 
 def access_page(url):
@@ -117,20 +112,19 @@ def access_page(url):
     try:
         page = urllib.request.urlopen(url)
     except HTTPError as error_info:
-        logging.error('Could not read the page at %s, got\
-                      an HTTPError. %s', url, str(error_info))
-        raise UnreadablePageException(url)
+        error = 'Could not read the page at {}, got\
+                      an HTTPError. {}'.format(url, str(error_info))
+        raise UnreadablePageException(error)
     encoding = page.headers.get_param('charset')
     if encoding is None:
-        logging.warning('No encoding ! Will try as UTF-8')
         encoding = 'utf-8'
     try:
         result = str(page.read().decode(encoding))
         return result
     except UnicodeDecodeError as exc:
-        logging.error('Could not read the page with encoding %s.\
-                       Got the exception : %s', encoding, str(exc))
-        raise UnreadablePageException(url)
+        error = 'Could not read the page at {} with encoding {}.\
+                       Got the exception : {}'.format(url, encoding, str(exc))
+        raise UnreadablePageException(error)
 
 def cut_between(text, from_t, to_t):
     """Only keep a text between FROM value and TO value.
