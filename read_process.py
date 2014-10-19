@@ -17,13 +17,13 @@ def read_only(pubs):
     _log.info("Reading only " + ','.join(pubs))
     publications = db_session.query(Publication).\
                     filter(Publication.name.in_(pubs)).all()
-    read(publications)
+    return read(publications)
 
 def read_every():
     '''Read every publications.'''
     _log.info("Reading every publications.")
     publications = db_session.query(Publication).all()
-    read(publications)
+    return read(publications)
 
 def read(publications):
     '''Read the publications received as parameter.
