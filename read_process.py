@@ -28,48 +28,41 @@ def read_every():
 def read(publications):
     '''Read the publications received as parameter.
     This being a lengthy process, we'll try and multiprocess 
-    it to improve the time it takes.'''
+    it to improve its efficiency.'''
     time0 = time.time()
     processes = []
-    results = multiprocessing.Queue()
-    logs = multiprocessing.Queue()
+    results = []
+    manager = multiprocessing.Manager()
+    results = manager.list()
+    logs = manager.list()
     for pub in publications:
         processes.append(multiprocessing.Process(target=read_and_analyze,
-                                                 args=(pub, results,logs,)))
+                                                 args=(pub, results, logs,)))
     [p.start() for p in processes]
     [p.join() for p in processes]
-    # Print all collected log
-    while not logs.empty():
-        record = logs.get()
-        _log.handle(record)
+
+    for error in logs:
+        _log.error(error)
 
     _log.info("Finished reading.")
     save_all(results)
     return "Read and analyzed {} front pages in {} secs.".\
            format(len(publications), str(time.time() - time0))
 
-def read_and_analyze(publication, queue, log_queue):
-    """Read a frontpage using the reader module.
-    Put the result in a queue."""
-    def prepare_log():
-        h = logging.handlers.QueueHandler(log_queue)
-        sublog = logging.getLogger('fropag.readsub')
-        sublog.addHandler(h)
-        sublog.setLevel(logging.INFO)
-        return sublog
-    sublog = prepare_log()
-    sublog.info("Reading frontpage for %s at %s", publication.name,
-                 publication.url)
+
+def read_and_analyze(publication, results, error_log):
+    '''Read a frontpage using the reader module.
+    Put the result in a queue.'''
     try:
         page = read_front_page(publication.url)
         stats = get_stats(page)
-        queue.put((publication, stats))
-        sublog.info('Finished reading %s', publication.name)
+        results.append((publication, stats))
     except UnreadablePageException as exception:
-        sublog.error('%s cannot be read : %s', publication.name, exception)
+        error_log.append('{} cannot be read : {}'.format(publication.name,
+                                                         exception))
         return
     except EmptyContentException:
-        sublog.error('No content for %s.', publication.name)
+        error_log.append('No content for {}.'.format(publication.name))
         return
 
 def save_words(publication_id, propers, commons):
@@ -97,15 +90,16 @@ def save_words(publication_id, propers, commons):
               'word_id' : w[0]} for w in proper_nouns])
     _log.info('Added proper nouns.')
 
-def save_all(q):
-    while not q.empty():
-        pair = q.get()
+def save_all(publication_and_results):
+    '''Take a list of publication object and stats extracted
+    from its frontpage and save the result in the database.'''
+    for pair in publication_and_results:
         # This will get us a pair (Publication, (Stats))
         publication = pair[0]
         _log.info('Saving information for %s', publication.name)
         stats = pair[1]
-        new_front_page = FrontPage(publication_id = publication.id
-                              ,lexical_richness = stats[2])
+        new_front_page = FrontPage(publication_id=publication.id,
+                                   lexical_richness=stats[2])
         db_session.begin()
         db_session.add(new_front_page)
         db_session.commit()
@@ -120,7 +114,7 @@ def get_word_id_or_add_it(w, p):
         return found.id
     else:
         new_word = Word(word = w, proper = p)
-        logging.debug("Adding word %s", w)
+        _log.debug("Adding word %s", w)
         db_session.begin()
         db_session.add(new_word)
         db_session.commit()
