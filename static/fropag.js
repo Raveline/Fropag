@@ -2,6 +2,14 @@
 function init_fropag(packages, then) {
     google.load('visualization', '1.0', {'packages':packages});
     google.setOnLoadCallback(then);
+    // Prepare the navbar form
+    $('#search-word').submit(function(e) {
+        var word = $('input[name="wordsearch"]').val();
+        if (word.length > 0) {
+            window.location.href="/word/" + word;
+        }
+        e.preventDefault();
+    });
 }
 
 function one_ajax_for_nodes(data, url, nodes, draw_func, values) {
