@@ -8,12 +8,12 @@
       <div class="histo"></div>
     </div>
 </div>
+  {% else %}
+  <p>Ce mot ne semble pas avoir déjà été rencontré dans une page d'accueil parsée.</p>
+  {% endif %}
   <script>
     init_fropag(['corechart'], function() { 
         one_publish('{{ url_for('get_history_for_word', word = word) }}', '.histo', draw_histo_chart);
       });
   </script>
-  {% else %}
-  <p>Ce mot ne semble pas avoir déjà été rencontré dans une page d'accueil parsée.</p>
-  {% endif %}
 {% endblock %}
