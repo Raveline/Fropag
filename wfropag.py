@@ -84,8 +84,7 @@ def index():
 
 @app.route('/word/<string:word>')
 def word_info(word):
-    try:
-        w = get_word_data(word)
+    def prepare_word_page(w):
         forbidden_info = "Ce mot est suivi pour toutes les publications."
         forbidden_pubs = [p['name'] for p in w['publications'] if p['forbidden']]
         if w['forbidden_all']:
@@ -98,8 +97,21 @@ def word_info(word):
         return render_template('word.html',
                                word=word,
                                forbidden_info=forbidden_info)
+
+    try:
+        w = get_word_data(word)
+        return prepare_word_page(w)
     except NonExistingDataException:
-        return render_template('word.html')
+        # Let's try with capitalizing / uncapitalizing it
+        try:
+            if word[0].islower():
+                word = word.capitalize()
+            else:
+                word = word.lower()
+            w = get_word_data(word)
+            return prepare_word_page(w)
+        except NonExistingDataException:
+            return render_template('word.html')
 
 @app.route('/top_words_all/')
 def get_top_words_all():
