@@ -52,11 +52,11 @@ function box_publish(url) {
 function draw_double_bar_chart(dom_node, name, stats) {
     /** Will draw two bar_charts : one for the proper nouns,
     the other for the common ones.**/
-    box_node = $(dom_node);
-    proper = box_node.children('.proper').get(0);
-    commons = box_node.children('.commons').get(0);
+    var box_node = $(dom_node);
+    var propers = box_node.children('.proper').get(0);
+    var commons = box_node.children('.commons').get(0);
     add_time_scale(box_node, name, stats['mindate'], stats['maxdate']);
-    draw_bar_chart(proper, name, stats['propers']);
+    draw_bar_chart(propers, name, stats['propers']);
     draw_bar_chart(commons, name, stats['commons']);
 }
 
@@ -80,5 +80,21 @@ function draw_histo_chart(dom_node, name, stats) {
     var options = { title : "Historique d'utilisation du mot"
                     , curveType: "function" };
     var chart = new google.visualization.LineChart(dom_node);
+    chart.draw(data,options);
+}
+
+function draw_double_bars(dom_node, name, stats) {
+    var box_node = $(dom_node);
+    var propers = box_node.children('.propers').get(0);
+    var commons = box_node.children('.commons').get(0);
+    add_time_scale(box_node, name, stats['mindate'], stats['maxdate']);
+    draw_words_bar(propers, name, stats['propers']);
+    draw_words_bar(commons, name, stats['commons']);
+}
+
+function draw_words_bar(dom_node, name, stats) {
+    var data = google.visualization.arrayToDataTable(stats);
+    var options = { title : "Mots les plus fréquents sur la page d'accueil" };
+    var chart = new google.visualization.BarChart(dom_node);
     chart.draw(data,options);
 }
