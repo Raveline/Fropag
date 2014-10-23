@@ -1,0 +1,27 @@
+{% extends "layout.html" %}
+{% block body %}
+<div class="container">
+  <h2>Principe</h2>
+  <p>Fropag (pour Front Page) est un outil qui permet de visualiser la fréquence des mots sur les pages d'accueil de plusieurs publications en lignes.</p>
+  <p>Notez que <em>seules les pages d'accueil</em> sont lues. Le contenu des articles n'est pas examiné. Et il s'agit bien de la "page d'accueil" du site Internet de la publication, et non de la page de Une papier.</p>
+  <h2>Fonctionnement</h2>
+  <p>Tous les matins à 10h00, les pages des journaux suivies sont examinées par l'application. La page est analysée selon le processus suivant :</p>
+  <div>
+    <ul>
+      <li>Dans un premier temps, la page lue est comparée avec la page de la même publication lue la veille. Cela permet d'éliminer l'essentiel de la maquette, les titres de rubriques, etc. Toutefois, cette solution ne permet pas de retirer certains termes, notamment les noms des auteurs des articles.</li>
+      <li>On enlève de la différence entre page de la veille et page du jour toutes les balises HTML qui pourraient être resté et qui ne sont pas susceptibles de contenir des données pertinentes (type &lt;style&gt; ou &lt;script&gt;), même si normalement la différence opérée à l'étape précédente doit suffire à les avoir éliminé.</li>
+      <li>Ensuite, la page est analyzée grâce à la <a href="http://www.nltk.org/">librairie NLTK</a> et au <a href="http://nlp.stanford.edu/software/tagger.shtml">Part-of-Speech (POS) Tagger de Stanford</a>. Cela permet d'éliminer la plupart des articles, conjonctions de coordinations, etc. Le but est de ne conserver que les substantifs, adjectifs et verbes. Parmi les substantifs, une division est faite entre noms propres et noms communs. Bien que le POS Tagger de Stanford soit un outil assez perfectionné, il lui arrive de se tromper notamment dans la séparation entre noms communs et noms propres.</li>
+      <li>Les informations ainsi récupérées sont stockées en base de données.</li>
+    </ul>
+  </div>
+  <p>Fropag est codé en Python 3, et la gestion du site se fait via le framework Flask. <a href="https://github.com/Raveline/Fropag">Les sources sont disponibles sur Github</a>. Les propositions d'optimisations sont évidemment bienvenues.</p>
+  <h2>A venir</h2>
+  <p>Une des fonctionnalités prévues est l'analyse des titres en eux-même, mais cela demande de pouvoir repérer aisément - et aussi automatiquement que possible - les balises contenant les titres sur les pages.</p>
+  <h2>Contact</h2>
+  <p>Façon simple, efficace et qui vous garantira une réponse : me contacter <a href="https://twitter.com/Raveline">via Twitter</a>.</p>
+  <p>Sinon vous pouvez m'écrire à l'adresse eraveline chez gmail point com.</p>
+</div>
+<script>
+  init_fropag(['corechart'], function() {});
+</script>
+{% endblock %}
