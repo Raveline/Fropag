@@ -8,10 +8,11 @@ from database import db_session
 from functools import wraps
 import config
 
-from core import get_publications, get_all_tops
+from core import get_publication, get_publications, get_all_tops
 from core import delete_publication, modify_publication, follow_publication
 from core import get_word_data, boot_sql_alchemy, NonExistingDataException
 from core import modify_word, get_publication_frequency, get_history_for
+from core import get_publication_most_used
 
 app = Flask(__name__)
 app.secret_key = config.SECRET_KEY
@@ -53,7 +54,7 @@ propers_prelude = [("Noms propres", "Décompte")]
 commons_prelude = [("Noms communs", "Décompte")]
 
 def login_required(fun):
-    """Make sure the user is logged in. 
+    """Make sure the user is logged in.
     If not, redirect him to the login page."""
     @wraps(fun)
     def decorated_function(*args, **kwargs):
@@ -170,6 +171,20 @@ def update_publication():
     idp = request.form['id']
     modify_publication(idp, name, url, begin, end)
     return redirect(url_for('admin_publications'))
+
+@app.route('/publication/<string:name>')
+def view_publication(name):
+    try:
+        pub = get_publication(name)
+        return render_template('publication.html', publication=pub)
+    except NonExistingDataException:
+        return render_template('page_not_found.html'), 404
+
+@app.route('/publication/frequency/<string:publication>')
+def most_used_words_of(publication):
+    result = get_publication_most_used(publication)
+    add_prelude(result)
+    return jsonify(result)
 
 @app.route('/word/update', methods=['POST'])
 def update_word():
