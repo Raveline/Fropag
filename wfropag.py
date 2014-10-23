@@ -172,6 +172,10 @@ def update_publication():
     modify_publication(idp, name, url, begin, end)
     return redirect(url_for('admin_publications'))
 
+@app.route('/about')
+def about():
+    return render_template('about.html')
+
 @app.route('/publication/<string:name>')
 def view_publication(name):
     try:
