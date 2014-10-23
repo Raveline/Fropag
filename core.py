@@ -20,6 +20,15 @@ class NonExistingDataException(Exception):
 # READ - DB AGGREGATION
 #------------------------------
 
+def get_publication(name):
+    '''Given the name of a publication, return, if it exists,
+    the Publication object.'''
+    try:
+        return db_session.query(Publication).\
+                          filter(Publication.name == name).one()
+    except:
+        raise NonExistingDataException('No such publication')
+
 def get_word_data(word):
     """For a given word (expressed as a string) return various information
     about it : its name, the publication who should ignore it, and if
@@ -30,6 +39,7 @@ def get_word_data(word):
     # However, proper nouns are to be recorded with a capital
     # first letter, whereas common nouns are lowered before
     # being inserted. (See the get_stats function of the analyze module).
+    print("Dealing with " + str(word))
     res = db_session.query(Word, Forbidden.word_id, Forbidden.publication_id,
             Publication.id, Publication.name, 
             Forbidden.publication_id == Publication.id).\
@@ -54,6 +64,11 @@ def get_publication_tops(names):
         results[p_name] = count_words_for(p_id)
     return results
 
+def get_publication_most_used(name):
+    results = {}
+    q = word_counting_query().filter(Publication.name == name)
+    return separate_propers_and_commons(q, 100)
+
 def count_words_for(p_id):
     q = word_counting_query().filter(Publication.id == p_id)
     return separate_propers_and_commons(q)
@@ -65,14 +80,16 @@ def get_publication_frequency(names):
         results[p_name] = count_frequency_for(p_id)
     return results
 
+def get_number_of_frontpages_for(pub_id):
+    return db_session.query(func.count(FrontPage.id)).\
+            filter(FrontPage.publication_id == p_id).one()[0]
+
 def count_frequency_for(p_id):
     def to_frequency(occurences, measurements):
         return round((occurences / measurements), 2)
-
+    n_frontpages = get_number_of_frontpages_for(pub_id)
     q = word_counting_query().filter(Publication.id == p_id)
     res = separate_propers_and_commons(q)
-    n_frontpages = db_session.query(func.count(FrontPage.id)).\
-            filter(FrontPage.publication_id == p_id).one()[0]
     res['propers'] = [(p[0], to_frequency(p[1], n_frontpages)) for p in res['propers']]
     res['commons'] = [(c[0], to_frequency(c[1], n_frontpages)) for c in res['commons']]
     return res
@@ -164,10 +181,10 @@ def word_counting_query():
     q = join_from_words_to_publication(q)
     return q.group_by(Word.word).order_by(desc('sumcount'))
 
-def separate_propers_and_commons(query):
+def separate_propers_and_commons(query, nmbReturn=10):
     results = {}
-    propers = query.filter(Word.proper == True).all()[:10]
-    commons = query.filter(Word.proper == False).all()[:10]
+    propers = query.filter(Word.proper == True).all()[:nmbReturn]
+    commons = query.filter(Word.proper == False).all()[:nmbReturn]
     results['propers'] = [(r[0], r[1]) for r in propers]
     results['commons'] = [(r[0], r[1]) for r in commons]
     # For new publications
