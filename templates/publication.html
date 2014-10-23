@@ -1,0 +1,15 @@
+{% extends "layout.html" %}
+{% block body %}
+<div class="container">
+  <h2>{{ publication.name }}</h2>
+  <div class="most_used">
+      <div class="propers"></div>
+      <div class="commons"></div>
+    </div>
+</div>
+  <script>
+    init_fropag(['corechart'], function() { 
+        one_publish('{{ url_for('most_used_words_of', publication = publication.name) }}', '.most_used', draw_double_bars);
+      });
+  </script>
+{% endblock %}
