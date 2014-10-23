@@ -1,7 +1,8 @@
+'''Provide various utilities to extract information
+from the database.'''
 # -*- coding: utf-8 -*-
 import itertools
-import logging
-from sqlalchemy import func, desc, distinct
+from sqlalchemy import func, desc
 from sqlalchemy import text
 from sqlalchemy.sql.expression import literal, or_, and_
 from sqlalchemy.orm.exc import NoResultFound
@@ -12,6 +13,9 @@ import config
 # EXCEPTIONS
 #------------------------------
 class NonExistingDataException(Exception):
+    '''This exception should be raised when user requested
+    access to information on something that does not exist
+    in the DB.'''
     def __init__(self, value):
         self.value = value
     def __str__(self):
@@ -39,12 +43,14 @@ def get_word_data(word):
     # However, proper nouns are to be recorded with a capital
     # first letter, whereas common nouns are lowered before
     # being inserted. (See the get_stats function of the analyze module).
-    print("Dealing with " + str(word))
-    res = db_session.query(Word, Forbidden.word_id, Forbidden.publication_id,
-            Publication.id, Publication.name, 
-            Forbidden.publication_id == Publication.id).\
-            join(Publication, literal(1) == 1).outerjoin(Forbidden,
-            Forbidden.word_id == Word.id).\
+    res = db_session.query(Word,
+                           Forbidden.word_id,
+                           Forbidden.publication_id,
+                           Publication.id,
+                           Publication.name,
+                           Forbidden.publication_id == Publication.id).\
+            join(Publication, literal(1) == 1).\
+            outerjoin(Forbidden, Forbidden.word_id == Word.id).\
             filter(Word.word == word).all()
     if not res:
         raise NonExistingDataException("Word " + word + " does not exist.")
@@ -52,10 +58,15 @@ def get_word_data(word):
         result = {}
         result['forbidden_all'] = res[0][1] is not None and res[0][2] is None
         result['word'] = res[0][0]
-        result['publications'] = [{'id' : r[3], 'forbidden' : r[5],'name' : r[4]} for r in res] 
+        result['publications'] = [{'id' : r[3],
+                                   'forbidden' : r[5],
+                                   'name' : r[4]} for r in res]
         return result
 
 def get_publication_tops(names):
+    '''For every publication with the given names,
+    get the top 10 most used common words and the
+    top 10 most used proper words.'''
     # This is rather ugly. But getting limited result for grouped queries
     # is rather impracticable. Best solution will be to cache this result.
     results = {}
@@ -65,15 +76,23 @@ def get_publication_tops(names):
     return results
 
 def get_publication_most_used(name):
+    '''For the publication with the given name,
+    find the 100 most used common words
+    and the 100 most used proper words.'''
     results = {}
     q = word_counting_query().filter(Publication.name == name)
     return separate_propers_and_commons(q, 100)
 
 def count_words_for(p_id):
+    '''Count the words for one publication identified
+    through its primary key. Will get the 10th most common
+    and proper words.'''
     q = word_counting_query().filter(Publication.id == p_id)
     return separate_propers_and_commons(q)
 
 def get_publication_frequency(names):
+    '''Count the 10 most frequent words for 
+    the given publications, identified by their names.'''
     results = {}
     pubs_and_fp_number = db_session.query(Publication.id, Publication.name)
     for (p_id, p_name) in pubs_and_fp_number:
@@ -81,20 +100,31 @@ def get_publication_frequency(names):
     return results
 
 def get_number_of_frontpages_for(pub_id):
+    '''Return the number of frontpages registered
+    for one publication, identified by its primary key.'''
     return db_session.query(func.count(FrontPage.id)).\
-            filter(FrontPage.publication_id == p_id).one()[0]
+            filter(FrontPage.publication_id == pub_id).one()[0]
 
 def count_frequency_for(p_id):
+    '''Count the frequency of words for a publication
+    identified by its primary key.'''
     def to_frequency(occurences, measurements):
+        '''Simple frequency computation with 2 digits precision.'''
         return round((occurences / measurements), 2)
-    n_frontpages = get_number_of_frontpages_for(pub_id)
+    n_frontpages = get_number_of_frontpages_for(p_id)
     q = word_counting_query().filter(Publication.id == p_id)
     res = separate_propers_and_commons(q)
-    res['propers'] = [(p[0], to_frequency(p[1], n_frontpages)) for p in res['propers']]
-    res['commons'] = [(c[0], to_frequency(c[1], n_frontpages)) for c in res['commons']]
+    res['propers'] = [(p[0],
+                      to_frequency(p[1], n_frontpages))
+                      for p in res['propers']]
+    res['commons'] = [(c[0],
+                      to_frequency(c[1], n_frontpages))
+                      for c in res['commons']]
     return res
 
 def get_history_for(word):
+    '''Given a word, get how many times it appeared
+    for each frontpage of each publications followed.'''
     # This is way to tiresome to do with ORM.
     # So... let's do it the old way !
     query = """select pubs.pubdate,
@@ -121,10 +151,12 @@ def get_history_for(word):
                 on cnt.id = pubs.id 
                 and cnt.pdate = pubs.pubdate
                 left outer join publication p on p.id = pubs.id;"""
-    return to_stats(get_engine().execute(text(query), x=word).fetchall(), "date")
+    return to_stats(get_engine().execute(text(query),
+                                         x=word).\
+                                 fetchall(), "date")
 
 def to_stats(elems, first_column_name):
-    """Given a list of tuples, typically a SQL query result,
+    '''Given a list of tuples, typically a SQL query result,
     put the 2nd colum in top.
     >>> a = [('date1', 'newspaper1', 2),
     ... ('date1', 'newspaper2', 3),
@@ -134,10 +166,10 @@ def to_stats(elems, first_column_name):
     ... ('date2', 'newspaper3', 7)]
     >>> to_stats(a, 'date')
     [['date', 'newspaper1', 'newspaper2', 'newspaper3'], ['date1', 2, 3, 4], ['date2', 5, 6, 7]]
-    """
+    '''
     # Sort
-    by1 = sorted(elems, key=lambda k : k[1])
-    by0 = sorted(elems, key=lambda k : k[0])
+    by1 = sorted(elems, key=lambda k: k[1])
+    by0 = sorted(elems, key=lambda k: k[0])
     # Extract the 2nd column
     column2 = itertools.groupby(by1, lambda x: x[1])
     column2 = [k for k, v in column2]
@@ -155,9 +187,12 @@ def to_stats(elems, first_column_name):
     return [column2] + res
 
 def get_all_tops():
+    '''Get 10 most common and 10 most proper words
+    used in ALL publications.'''
     return separate_propers_and_commons(word_counting_query())
 
 def get_publications():
+    '''Return all tracked publication.'''
     return db_session.query(Publication).all()
 
 def get_real_min_and_max(q):
@@ -168,10 +203,11 @@ def get_real_min_and_max(q):
     subq = q.subquery()
     newq = db_session.query(func.min(subq.c.mindate),
                             func.max(subq.c.maxdate))
-                      
     return newq.first()
 
 def word_counting_query():
+    '''Our main query for counting words and getting
+    the minimum and maximum date where they appeared.'''
     q = db_session.query(Word.word.label('word'),
                          func.sum(WordCount.count).label('sumcount'),
                          func.min(FrontPage.time_of_publication).\
@@ -181,10 +217,13 @@ def word_counting_query():
     q = join_from_words_to_publication(q)
     return q.group_by(Word.word).order_by(desc('sumcount'))
 
-def separate_propers_and_commons(query, nmbReturn=10):
+def separate_propers_and_commons(query, nmb_return=10):
+    '''Given a query, separate the proper and common words.
+    Execute the query for both and return nmb_return rows.
+    If the results exist, also get the datespan of our data.'''
     results = {}
-    propers = query.filter(Word.proper == True).all()[:nmbReturn]
-    commons = query.filter(Word.proper == False).all()[:nmbReturn]
+    propers = query.filter(Word.proper == True).all()[:nmb_return]
+    commons = query.filter(Word.proper == False).all()[:nmb_return]
     results['propers'] = [(r[0], r[1]) for r in propers]
     results['commons'] = [(r[0], r[1]) for r in commons]
     # For new publications
@@ -195,12 +234,19 @@ def separate_propers_and_commons(query, nmbReturn=10):
     return results
 
 def see_words_for(publication_name, proper, limit = 10):
+    '''Get x most used words for the publication identified
+    by its name. Words can be proper or not, according to
+    the boolean second parameter.
+    N.B. : mostly used for debug, this should disappear.'''
     q = word_counting_query().filter(Publication.name == publication_name).\
             filter(Word.proper == proper).\
             all()[:limit]
     return q
 
 def join_from_words_to_publication(q):
+    '''Join for word counting queries. This join mostly
+    make sure forbidden words, words that we don't want to
+    follow, are not going to be counted.'''
     return q.join(WordCount, Word.id == WordCount.word_id).\
       join(FrontPage, WordCount.frontpage_id == FrontPage.id).\
       join(Publication, Publication.id == FrontPage.publication_id).\
@@ -211,6 +257,9 @@ def join_from_words_to_publication(q):
 # Update functions
 #------------------------------
 def modify_word(id_w, proper, forbid_all, forbidden):
+    '''Modify a word in the database. Change its proper
+    status, the fact that its forbidden for all or some
+    publications.'''
     # First, let's udpate the word table
     db_session.query(Word).filter(Word.id == id_w).update({"proper": proper})
     # Then, remove every forbidden properties for this word
@@ -229,24 +278,27 @@ def modify_word(id_w, proper, forbid_all, forbidden):
     return "Updated."
 
 def modify_publication(id_p, name, url, start, end):
+    '''Change the information of a publication.'''
     db_session.query(Publication).filter(Publication.id == id_p).\
-            update({"name":name, "url":url, "start":start, "end":end })
+            update({"name":name, "url":url, "start":start, "end":end})
 
 # Create functions
 #------------------------------
 
 def follow_publication(name, url):
+    '''Track a new publication by adding it to the database.'''
     db_session.begin()
     new_publication = Publication(name=name, url=url)
     db_session.add(new_publication)
     db_session.commit()
     return "Following publication {} at {} ".format(name, url)
 
-
-
 # Delete
 #------------------------------
 def delete_stuff(q):
+    '''Generic removal function. Receives a  query,
+    and return an error or success message according
+    to how the query went.'''
     try:
         db_session.begin()
         db_session.delete(q.one())
@@ -256,19 +308,22 @@ def delete_stuff(q):
         return "No such publication."
 
 def delete_publication(p_id):
-    """Delete ONE publication from the database.
-    Must delete teh dependents frontpage & wordcounts."""
-    return delete_stuff(db_session.query(Publication).filter(Publication.id==p_id))
+    '''Delete ONE publication from the database
+    Must delete teh dependents frontpage & wordcounts.'''
+    return delete_stuff(db_session.query(Publication).\
+                        filter(Publication.id == p_id))
 
 def delete_front_page(fp_id):
-    """Delete ONE front page from the database.
-    Must delete the dependent wordcounts."""
-    return delete_stuff(db_session.query(FrontPage).filter(FrontPage.id==fp_id))
-
+    '''Delete ONE front page from the database.
+    Must delete the dependent wordcounts.'''
+    return delete_stuff(db_session.query(FrontPage).\
+                        filter(FrontPage.id == fp_id))
 
 # Utilities (should move soon)
 #------------------------------
 def boot_sql_alchemy():
+    '''Prepare SQLAlchemy engine using the information
+    in config.py.'''
     set_engine(config.DB_URI,
                config.DB_USER,
                config.DB_PASSWORD,
@@ -277,5 +332,6 @@ def boot_sql_alchemy():
                config.DB_NAME)
     
 def init_db():
+    '''Create the database.'''
     Base.metadata.create_all(get_engine())
     return "Created database."
