@@ -19,6 +19,7 @@
         <ul class="nav navbar-nav">
           <li class="navbar-brand">FROPAG</li>
           <li><a href="{{url_for('index')}}">Page principale</a></li>
+          <li><a href="{{url_for('about')}}">Explications</a></li>
           {% if session.admin %}
           <li>
             <a href="{{ url_for('admin_publications') }}">Ajouter des publications</a>
