@@ -2,11 +2,11 @@
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, scoped_session, create_session
 from sqlalchemy.ext.declarative import declarative_base
-from config import check_config
+import config
 
 def set_engine(uri, user, password, host, port, name):
     global engine
-    check_config()
+    config.check_config()
     connection_string = ''.join([uri,
                                  user,
                                  ':',

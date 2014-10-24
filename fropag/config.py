@@ -2,11 +2,11 @@
 # Config with constants
 DB_USER = None
 DB_PASSWORD = None
-DB_HOST = 'localhost'
-DB_PORT = '5432'
+DB_HOST = None
+DB_PORT = None
 DB_NAME = None
-DB_URI = 'postgresql+psycopg2://'
-SECRET_KEY = 'MSDLGJKLGJdfvfdfkljh!112245flkjdglk12'
+DB_URI = None
+SECRET_KEY = None
 LOGIN = None
 PASSWORD = None
 

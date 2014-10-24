@@ -4,11 +4,11 @@ import time
 import multiprocessing
 import logging
 
-from publication import Publication, Word, FrontPage, WordCount
+from model.publication import Publication, Word, FrontPage, WordCount
 from database import db_session, get_engine
 
-from reader import read_front_page, UnreadablePageException
-from analyze import get_stats, EmptyContentException
+from process.reader import read_front_page, UnreadablePageException
+from process.analyze import get_stats, EmptyContentException
 
 _log = logging.getLogger('fropag.read')
 

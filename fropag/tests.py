@@ -1,20 +1,20 @@
 import unittest
 import datetime
 from collections import Counter
-import config
+import web.config
 from sqlalchemy import func
 from sqlalchemy.orm import sessionmaker, scoped_session
 
 from database import *
-from publication import *
-from core import *
-from read_process import save_words
+from model.publication import *
+from model.core import *
+from process.read_process import save_words
 
 class DBTesting(unittest.TestCase):
     def setUp(self):
-        config.DB_USER = "testUser"
-        config.DB_PASSWORD = "testPwd"
-        config.DB_NAME = "testFropag"
+        web.config.DB_USER = "testUser"
+        web.config.DB_PASSWORD = "testPwd"
+        web.config.DB_NAME = "testFropag"
         boot_sql_alchemy()
         Base.metadata.create_all(engine)
 

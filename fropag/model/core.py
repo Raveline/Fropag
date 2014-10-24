@@ -7,7 +7,7 @@ from sqlalchemy import text
 from sqlalchemy.sql.expression import literal, or_, and_
 from sqlalchemy.orm.exc import NoResultFound
 from database import Base, get_engine, set_engine, db_session
-from publication import Publication, Word, FrontPage, WordCount, Forbidden
+from model.publication import Publication, Word, FrontPage, WordCount, Forbidden
 import config
 
 # EXCEPTIONS
@@ -277,10 +277,10 @@ def modify_word(id_w, proper, forbid_all, forbidden):
     db_session.commit()
     return "Updated."
 
-def modify_publication(id_p, name, url, start, end):
+def modify_publication(id_p, name, url):
     '''Change the information of a publication.'''
     db_session.query(Publication).filter(Publication.id == id_p).\
-            update({"name":name, "url":url, "start":start, "end":end})
+            update({"name":name, "url":url})
 
 # Create functions
 #------------------------------

@@ -5,9 +5,9 @@ import argparse
 import os
 import logging
 import logging.handlers
-from core import follow_publication, delete_front_page
-from core import init_db, see_words_for, boot_sql_alchemy
-from read_process import read_only, read_every
+from model.core import follow_publication, delete_front_page
+from model.core import init_db, see_words_for, boot_sql_alchemy
+from process.read_process import read_only, read_every
 from config import ConfigException
 
 def set_up(args):

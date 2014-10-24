@@ -20,8 +20,8 @@ for this task."""
 from nltk.corpus import PlaintextCorpusReader
 from nltk import Text, word_tokenize
 from nltk.tag.stanford import POSTagger
-from publication import Publication
 from collections import Counter
+from model.publication import Publication
 
 class EmptyContentException(Exception):
     '''This exception should be called if an empty frontpage
