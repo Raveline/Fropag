@@ -46,18 +46,18 @@ function box_publish(url) {
         values.push(title_text_extractor(node));
     });
     var args = { 'names[]' : values };
-    one_ajax_for_nodes(args, url, selected, draw_double_bar_chart, values);
+    one_ajax_for_nodes(args, url, selected, draw_double_col_chart, values);
 }
 
-function draw_double_bar_chart(dom_node, name, stats) {
+function draw_double_col_chart(dom_node, name, stats) {
     /** Will draw two bar_charts : one for the proper nouns,
     the other for the common ones.**/
     var box_node = $(dom_node);
     var propers = box_node.children('.proper').get(0);
     var commons = box_node.children('.commons').get(0);
     add_time_scale(box_node, name, stats['mindate'], stats['maxdate']);
-    draw_bar_chart(propers, name, stats['propers']);
-    draw_bar_chart(commons, name, stats['commons']);
+    draw_col_chart(propers, name, stats['propers']);
+    draw_col_chart(commons, name, stats['commons']);
 }
 
 function add_time_scale(dom_node, name, min, max) {
@@ -65,7 +65,7 @@ function add_time_scale(dom_node, name, min, max) {
     dom_node.append(text);
 }
 
-function draw_bar_chart(dom_node, name, stats) {
+function draw_col_chart(dom_node, name, stats) {
     /** Stats should be in the form :
     [['Word', 'Usage'],
     ['Hello', 1]...]**/

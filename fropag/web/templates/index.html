@@ -19,7 +19,7 @@
 <script>
   init_fropag(['corechart'], function() { 
       box_publish('{{ url_for('get_top_words_for') }}');
-      one_publish('{{ url_for('get_top_words_all') }}', '.pub-all', draw_double_bar_chart);
+      one_publish('{{ url_for('get_top_words_all') }}', '.pub-all', draw_double_col_chart);
     });
 </script>
 {% endblock %}
