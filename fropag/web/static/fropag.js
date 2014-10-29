@@ -53,18 +53,18 @@ function box_publish(url) {
         values.push(title_text_extractor(node));
     });
     var args = { 'names[]' : values };
-    one_ajax_for_nodes(args, url, selected, draw_double_bar_chart, values);
+    one_ajax_for_nodes(args, url, selected, draw_double(data_to_col_chart), values);
 }
 
-function draw_double_bar_chart(data, node, colorFrom, colorTo) {
+function draw_double_col_chart(data, node, colorFrom, colorTo) {
     /** Will draw two bar_charts : one for the proper nouns,
     the other for the common ones.**/
     var box_node = $(node);
     var propers_node = box_node.children('.proper').get(0);
     var commons_node = box_node.children('.commons').get(0);
     add_time_scale(box_node, name, data['mindate'], data['maxdate']);
-    data_to_bar_chart(data['propers'], propers_node, colorFrom, colorTo);
-    data_to_bar_chart(data['commons'], commons_node, colorFrom, colorTo);
+    data_to_col_chart(data['propers'], propers_node, colorFrom, colorTo);
+    data_to_col_chart(data['commons'], commons_node, colorFrom, colorTo);
 }
 
 function add_time_scale(dom_node, name, min, max) {
@@ -90,13 +90,15 @@ function draw_histo_chart(dom_node, name, stats) {
     chart.draw(data,options);
 }
 
-function draw_double_bars(dom_node, name, stats) {
-    var box_node = $(dom_node);
-    var propers = box_node.children('.propers').get(0);
-    var commons = box_node.children('.commons').get(0);
-    add_time_scale(box_node, name, stats['mindate'], stats['maxdate']);
-    draw_words_bar(propers, name, stats['propers']);
-    draw_words_bar(commons, name, stats['commons']);
+function draw_double(func) {
+    return function(data, node, color_from, color_to) {
+        var box_node = $(node);
+        var propers_node = box_node.children('.propers').get(0);
+        var commons_node = box_node.children('.commons').get(0);
+        add_time_scale(box_node, name, data['mindate'], data['maxdate']);
+        func(data['propers'], propers_node, color_from, color_to);
+        func(data['commons'], propers_node, color_from, color_to);
+    }
 }
 
 function draw_words_bar(dom_node, name, stats) {
@@ -106,7 +108,7 @@ function draw_words_bar(dom_node, name, stats) {
     chart.draw(data,options);
 }
 
-function data_to_bar_chart(data, node, begin_color, end_color) {
+function data_to_col_chart(data, node, begin_color, end_color) {
     // Get node as d3 object
     node = d3.select(node);
 	// Remove the legend from our data
@@ -174,64 +176,63 @@ function data_to_bar_chart(data, node, begin_color, end_color) {
 
 }
 
-function data_to_col_chart(data, node, begin_color, end_color) {
-	// Remove the legend from our data
-	var legend = data.shift()
-	
-	// Compute size
-	var margin = {top: 20, right : 30, bottom:30, left:40};
-	var height = 352 - margin.top - margin.bottom;
-	var width = parseInt(node.style("width")) - margin.top - margin.bottom;
-	
-	var bar_width = height / data.length;
-	
-	// Create the svg
-	var svg = node.append("svg")
-				  .attr("width", width + margin.left + margin.right)
-				  .attr("height", height + margin.top + margin.bottom)
-				.append("g")
-					.attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+function data_to_bar_chart(data, node, begin_color, end_color) {
+    // Node as d3 object
+    node = d3.select(node);
+    // Remove the legend from our data
+    var legend = data.shift();
+    // Compute size
+    var margin = {top: 20, right : 30, bottom:30, left:40};
+    var bar_height = 20;
+    var height = bar_height * (data.length)
+    var width = parseInt(node.style("width")) - margin.top - margin.bottom;
+    var bar_width = height / data.length;
+    
+    // Create the svg
+    var svg = node.append("svg")
+                  .attr("width", width + margin.left + margin.right)
+                  .attr("height", height + margin.top + margin.bottom)
+                  .append("g")
+                  .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+    
+    var color = d3.scale.linear()
+                        .domain([0,100])
+                        .interpolate(d3.interpolateRgb)
+                        .range([begin_color, end_color]);
+    
+    // Prepare the scale
+    var x = d3.scale.linear()
+              .domain([0, d3.max(data, function(d) { return d[1]; })])
+              .range([0, width]);
+    
+    var bar = svg.selectAll("g")
+                 .data(data)
+                 .enter().append("g")
+                    .attr("transform", function(d,i) { 
+                        return "translate (0," + i * bar_height + ")"; 
+                    })
+   
+    bar.append("rect")
+        .attr("x", 0)
+        .attr("width", function(d) { return x(d[1]); })
+        .attr("height", bar_height - 1)
+        .style("fill", function(d) { return color(d[1]); });
 
-	// Prepare the scale
-	var y = d3.scale.linear()
-			  .domain([0, d3.max(data, function(d) { return d[1] })])
-			  .range([height,0]);
-	
-	var x = d3.scale.ordinal()
-			.domain(data.map(function(d) { return d[0]; }))
-			.rangeRoundBands([0, width], 0,0);
-
-	var color = d3.scale.linear()
-				  .domain([0,100])
-				  .interpolate(d3.interpolateRgb)
-				  .range([begin_color, end_color]);
-			
-	var bar = svg.selectAll("g")
-				 .data(data)
-			     .enter().append("g")
-				 .attr("transform", function(d) { 
-					return "translate (" + x(d[0]) + ", 0)"; 
-				 });
-
-	bar.append("rect")
-		.attr("y", function(d) { return y(d[1]) })
-		.attr("width", x.rangeBand())
-		.attr("height", function(d) { return height - y(d[1]) })
-		.style("fill", function(d) { return color(d[1]); });
-	
-	// Add the axis
-	var xAxis = d3.svg.axis().scale(x).orient("bottom");
-	svg.append("g")
-		.attr("class", "x axis")
-		.attr("transform", "translate(0," + height + ")")
-		.call(xAxis);
-	var yAxis = d3.svg.axis().scale(y).orient("left");
-	svg.append("g")
-		.attr("class", "y axis")
-		.attr("transform", "translate(0,0)")
-		.call(yAxis);
-
+    bar.append("text")
+       .attr("x", 3)
+       .attr("y", bar_height/2 + 4)
+       .style("font-size", ".8em")
+       .style("fill", "white")
+       .text(function(d) { return [d[0], " (", d[1], ")"].join(''); });
+    
+    // Add the axis
+    var xAxis = d3.svg.axis().scale(x).orient("top");
+    svg.append("g")
+    .attr("class", "x axis")
+    .attr("transform", "translate(0,0)")
+    .call(xAxis);
 }
+
 
 function data_to_line_chart(data, node) {
   // Node as d3 object
