@@ -1,7 +1,5 @@
 /** Chart builders **/
-function init_fropag(packages, then) {
-    google.load('visualization', '1.0', {'packages':packages});
-    google.setOnLoadCallback(then);
+function init_fropag(then) {
     // Prepare the navbar form
     $('#search-word').submit(function(e) {
         var word = $('input[name="wordsearch"]').val();
@@ -10,6 +8,7 @@ function init_fropag(packages, then) {
         }
         e.preventDefault();
     });
+    then();
 }
 
 function one_ajax_for_nodes(data, url, nodes, draw_func, values) {
@@ -56,38 +55,9 @@ function box_publish(url) {
     one_ajax_for_nodes(args, url, selected, draw_double(data_to_col_chart), values);
 }
 
-function draw_double_col_chart(data, node, colorFrom, colorTo) {
-    /** Will draw two bar_charts : one for the proper nouns,
-    the other for the common ones.**/
-    var box_node = $(node);
-    var propers_node = box_node.children('.proper').get(0);
-    var commons_node = box_node.children('.commons').get(0);
-    add_time_scale(box_node, name, data['mindate'], data['maxdate']);
-    data_to_col_chart(data['propers'], propers_node, colorFrom, colorTo);
-    data_to_col_chart(data['commons'], commons_node, colorFrom, colorTo);
-}
-
 function add_time_scale(dom_node, name, min, max) {
     text = ['<div class="legend">', 'Entre le ', min, ' et ', max, '</div>'].join('');
     dom_node.append(text);
-}
-
-function draw_col_chart(dom_node, name, stats) {
-    /** Stats should be in the form :
-    [['Word', 'Usage'],
-    ['Hello', 1]...]**/
-    var data = google.visualization.arrayToDataTable(stats);
-    var options = { title : "Mots les plus fréquents sur la page d'accueil" };
-    var chart = new google.visualization.ColumnChart(dom_node);
-    chart.draw(data,options);
-}
-
-function draw_histo_chart(dom_node, name, stats) {
-    var data = google.visualization.arrayToDataTable(stats.data);
-    var options = { title : "Historique d'utilisation du mot"
-                    , curveType: "function" };
-    var chart = new google.visualization.LineChart(dom_node);
-    chart.draw(data,options);
 }
 
 function draw_double(func) {
@@ -99,13 +69,6 @@ function draw_double(func) {
         func(data['propers'], propers_node, color_from, color_to);
         func(data['commons'], propers_node, color_from, color_to);
     }
-}
-
-function draw_words_bar(dom_node, name, stats) {
-    var data = google.visualization.arrayToDataTable(stats);
-    var options = { title : "Mots les plus fréquents sur la page d'accueil" };
-    var chart = new google.visualization.BarChart(dom_node);
-    chart.draw(data,options);
 }
 
 function data_to_col_chart(data, node, begin_color, end_color) {

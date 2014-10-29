@@ -17,7 +17,7 @@
   {% endfor %}
 </div>
 <script>
-  init_fropag(['corechart'], function() { 
+  init_fropag(function() { 
       box_publish('{{ url_for('get_top_words_for') }}');
       one_publish('{{ url_for('get_top_words_all') }}', '.pub-all', draw_double(data_to_col_chart));
     });
