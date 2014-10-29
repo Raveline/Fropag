@@ -10,7 +10,7 @@
 <div class="container">
   {% for p in publications %}
   <div class = "col-md-6 pub-box">
-    <h3>{{ p }}</h3>
+    <h3><a href="{{url_for('view_publication', name=p) }}">{{ p }}</a></h3>
     <div class="propers"></div>
     <div class="commons"></div>
   </div>
