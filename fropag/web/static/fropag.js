@@ -98,7 +98,7 @@ function data_to_col_chart(data, node, begin_color, end_color) {
 	
 	var x = d3.scale.ordinal()
 			.domain(data.map(function(d) { return d[0]; }))
-			.rangeRoundBands([0, width], 0,0);
+			.rangeRoundBands([0, width], .1,0);
 
 	var color = d3.scale.linear()
 				  .domain([0,100])
@@ -107,14 +107,11 @@ function data_to_col_chart(data, node, begin_color, end_color) {
 			
 	var bar = svg.selectAll("g")
 				 .data(data)
-			     .enter().append("g")
-				 .attr("transform", function(d) { 
-					return "translate (" + x(d[0]) + ", 0)"; 
-				 });
+			     .enter().append("g");
 
-		 
 	bar.append("rect")
-		.attr("y", function(d) { return y(d[1]) })
+        .attr("x", function(d) { return x(d[0]); })
+		.attr("y", function(d) { return y(d[1]); })
 		.attr("width", x.rangeBand())
 		.attr("height", function(d) { return height - y(d[1]) })
 		.style("fill", function(d) { return color(d[1]); });
@@ -128,6 +125,7 @@ function data_to_col_chart(data, node, begin_color, end_color) {
         .selectAll("text") // Rotation of text to make it legible
             .style("text-anchor", "end")
             .style("font-size", ".8em")
+            .style("text", "sans serif")
             .attr("dx", "-.8em")
             .attr("dy", ".15em")
             .attr("transform", "rotate(-65)");
