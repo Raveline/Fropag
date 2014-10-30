@@ -6,6 +6,7 @@
     {% assets "css_all" %}
     <link rel="stylesheet" href="{{ ASSET_URL }}" type="text/css">
     {% endassets %}
+    <link rel="stylesheet" href="{{ url_for('static', filename='fropag.css') }}" type="text/css">
     {% assets "js_all" %}
     <script type="text/javascript" src="{{ ASSET_URL }}"></script>
     {% endassets %}
