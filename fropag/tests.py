@@ -1,7 +1,7 @@
 import unittest
 import datetime
 from collections import Counter
-import web.config
+import config
 from sqlalchemy import func
 from sqlalchemy.orm import sessionmaker, scoped_session
 
@@ -12,9 +12,9 @@ from process.read_process import save_words
 
 class DBTesting(unittest.TestCase):
     def setUp(self):
-        web.config.DB_USER = "testUser"
-        web.config.DB_PASSWORD = "testPwd"
-        web.config.DB_NAME = "testFropag"
+        config.DB_USER = "testUser"
+        config.DB_PASSWORD = "testPwd"
+        config.DB_NAME = "testFropag"
         boot_sql_alchemy()
         Base.metadata.create_all(engine)
 
