@@ -113,9 +113,9 @@ function data_to_col_chart(data, node, tone) {
 
     var magn = magnitude(maximum);
 	var color = d3.scale.linear()
-				  .domain([0,magnitude(maximum)])
+				  .domain([0,magn])
 				  .interpolate(d3.interpolateRgb)
-				  .range([tone, tone.brighter(magn)]);
+				  .range(["#FFFACD", tone]);
 			
 	var bar = svg.selectAll("g")
 				 .data(data)
@@ -146,7 +146,6 @@ function data_to_col_chart(data, node, tone) {
 		.attr("class", "y axis")
 		.attr("transform", "translate(0,0)")
 		.call(yAxis);
-
 }
 
 function data_to_bar_chart(data, node, begin_color, end_color) {
