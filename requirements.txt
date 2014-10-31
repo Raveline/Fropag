@@ -4,3 +4,4 @@ nltk
 psycopg2
 flask
 flask-assets
+simplejson
