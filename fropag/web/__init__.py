@@ -27,7 +27,8 @@ assets.register(
     'js_all',
     Bundle(
         'jquery/dist/jquery.min.js',
-        'bootstrap/dist/js/bootstrap.min.js'
+        'bootstrap/dist/js/bootstrap.min.js',
+        'd3/d3.js'
     )
 )
 
