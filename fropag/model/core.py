@@ -99,26 +99,24 @@ def get_publication_frequency(names):
         results[p_name] = count_frequency_for(p_id)
     return results
 
+def get_number_of_all_frontpages():
+    '''Return the number of frontpages recorded for every publications.'''
+    # Count as cast in order to have a valid division
+    return db_session.query(cast(func.count(FrontPage.id), Numeric(10, 2)).\
+                            label('fpcount'))
+
 def get_number_of_frontpages_for(pub_id):
     '''Return the number of frontpages registered
     for one publication, identified by its primary key.'''
-    # Count as cast in order to have a valid division
-    return db_session.query(cast(func.count(FrontPage.id), Numeric(10, 2)).\
-            label('fpcount')).\
-            filter(FrontPage.publication_id == pub_id)
+    return get_number_of_all_frontpages().\
+           filter(FrontPage.publication_id == pub_id)
 
-def count_frequency_for(p_id):
-    '''Count the frequency of words for a publication
-    identified by its primary key.'''
-    def to_frequency(occurences, measurements):
-        '''Simple frequency computation with 2 digits precision.'''
-        return round((occurences / measurements), 2)
-
-    subq = get_number_of_frontpages_for(p_id).subquery()
-
+def get_frequency_query(subquery):
+    '''Given a subquery that let us get the number of frontpages,
+    return the query needed to compute the frequency of word usages.'''
     # This should avoid any div by zero error
-    no_fp = case([(subq.c.fpcount == 0, 0),],
-                 else_=cast((func.sum(WordCount.count) / subq.c.fpcount),
+    no_fp = case([(subquery.c.fpcount == 0, 0),],
+                 else_=cast((func.sum(WordCount.count) / subquery.c.fpcount),
                             Numeric(10, 2))).\
                  label('frequency')
     q = db_session.query(Word.word,
@@ -127,12 +125,17 @@ def count_frequency_for(p_id):
                          label('mindate'),
                          func.max(FrontPage.time_of_publication).\
                          label('maxdate'))
-    q = join_from_words_to_publication(q).\
-        group_by(Word.word, subq.c.fpcount).\
+    return join_from_words_to_publication(q).\
+           group_by(Word.word, subquery.c.fpcount)
+
+def count_frequency_for(p_id):
+    '''Count the frequency of words for a publication
+    identified by its primary key.'''
+    subq = get_number_of_frontpages_for(p_id).subquery()
+    q = get_frequency_query(subq).\
         filter(Publication.id == p_id).\
         order_by(desc('frequency'))
     res = separate_propers_and_commons(q)
-    print(res)
     return res
 
 def get_history_for(word):
@@ -202,7 +205,10 @@ def to_stats(elems, first_column_name):
 def get_all_tops():
     '''Get 10 most common and 10 most proper words
     used in ALL publications.'''
-    return separate_propers_and_commons(word_counting_query())
+    subq = get_number_of_all_frontpages().subquery()
+    q = get_frequency_query(subq).\
+        order_by(desc('frequency'))
+    return separate_propers_and_commons(q)
 
 def get_publications():
     '''Return all tracked publication.'''
