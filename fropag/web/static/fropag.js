@@ -1,3 +1,6 @@
+var d3rainbow = ['red', 'yellow', 'blue', 'violet', 'orange', 'green', 'indigo'].map(function(s) { return d3.rgb(s); });
+var rainbowCursor = 0;
+
 /** Chart builders **/
 function init_fropag(then) {
     // Prepare the navbar form
@@ -15,13 +18,17 @@ function one_ajax_for_nodes(data, url, nodes, draw_func, values) {
     values = values 
     $.get(url, data, function(data) {
         nodes.each(function(index, node) {
+            // 1. Get data - may vary according to the service called
             relevant_data = data;
+            // Multi-publication result
             if (values) {
               name = values[index];
               if (name in data) {
                   relevant_data = data[name];
               }
             }
+            // 2. Handle possible failure for one-shot cases
+            // (This is ugly, refactor)
             if ("success" in data) {
               if (data.success) {
                 relevant_data = data.data;
@@ -29,7 +36,10 @@ function one_ajax_for_nodes(data, url, nodes, draw_func, values) {
                 return;
               }
             }
-            draw_func(relevant_data, node, "blue", "red");
+            // 3. Global color wheel
+            var color = d3rainbow[rainbowCursor % d3rainbow.length]
+            rainbowCursor++;
+            draw_func(relevant_data, node, color);
         });
     });
 }
@@ -61,17 +71,17 @@ function add_time_scale(dom_node, name, min, max) {
 }
 
 function draw_double(func) {
-    return function(data, node, color_from, color_to) {
+    return function(data, node, tone) {
         var box_node = $(node);
         var propers_node = box_node.children('.propers').get(0);
         var commons_node = box_node.children('.commons').get(0);
         add_time_scale(box_node, name, data['mindate'], data['maxdate']);
-        func(data['propers'], propers_node, color_from, color_to);
-        func(data['commons'], propers_node, color_from, color_to);
+        func(data['propers'], propers_node, tone);
+        func(data['commons'], propers_node, tone);
     }
 }
 
-function data_to_col_chart(data, node, begin_color, end_color) {
+function data_to_col_chart(data, node, tone) {
     // Get node as d3 object
     node = d3.select(node);
 	// Remove the legend from our data
@@ -92,18 +102,20 @@ function data_to_col_chart(data, node, begin_color, end_color) {
 					.attr("transform", "translate(" + margin.left + "," + margin.top + ")");
 
 	// Prepare the scale
+	var maximum = d3.max(data, function(d) { return d[1] });
 	var y = d3.scale.linear()
-			  .domain([0, d3.max(data, function(d) { return d[1] })])
+			  .domain([0, maximum])
 			  .range([height,0]);
 	
 	var x = d3.scale.ordinal()
 			.domain(data.map(function(d) { return d[0]; }))
 			.rangeRoundBands([0, width], .1,0);
 
+    var magn = magnitude(maximum);
 	var color = d3.scale.linear()
-				  .domain([0,100])
+				  .domain([0,magnitude(maximum)])
 				  .interpolate(d3.interpolateRgb)
-				  .range([begin_color, end_color]);
+				  .range([tone, tone.brighter(magn)]);
 			
 	var bar = svg.selectAll("g")
 				 .data(data)
@@ -157,7 +169,7 @@ function data_to_bar_chart(data, node, begin_color, end_color) {
                   .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
     
     var color = d3.scale.linear()
-                        .domain([0,100])
+                        .domain([0,10])
                         .interpolate(d3.interpolateRgb)
                         .range([begin_color, end_color]);
     
@@ -295,4 +307,10 @@ function data_to_line_chart(data, node) {
              .on("mousemove", function() { return tooltip.style("top", (event.pageY-10)+"px")
              .style("left",(event.pageX+10)+"px"); })
              .on("mouseout", function() { return tooltip.style("visibility", "hidden") });
+}
+
+function magnitude(numeric) {
+    // Pop ! Pop !
+    asInt = parseInt(numeric);
+    return Math.pow(10, (asInt+"").length);
 }
