@@ -2,7 +2,7 @@
 from the database.'''
 # -*- coding: utf-8 -*-
 import itertools
-from sqlalchemy import func, desc
+from sqlalchemy import func, desc, case, cast, Numeric
 from sqlalchemy import text
 from sqlalchemy.sql.expression import literal, or_, and_
 from sqlalchemy.orm.exc import NoResultFound
@@ -102,8 +102,10 @@ def get_publication_frequency(names):
 def get_number_of_frontpages_for(pub_id):
     '''Return the number of frontpages registered
     for one publication, identified by its primary key.'''
-    return db_session.query(func.count(FrontPage.id)).\
-            filter(FrontPage.publication_id == pub_id).one()[0]
+    # Count as cast in order to have a valid division
+    return db_session.query(cast(func.count(FrontPage.id), Numeric(10, 2)).\
+            label('fpcount')).\
+            filter(FrontPage.publication_id == pub_id)
 
 def count_frequency_for(p_id):
     '''Count the frequency of words for a publication
@@ -111,15 +113,26 @@ def count_frequency_for(p_id):
     def to_frequency(occurences, measurements):
         '''Simple frequency computation with 2 digits precision.'''
         return round((occurences / measurements), 2)
-    n_frontpages = get_number_of_frontpages_for(p_id)
-    q = word_counting_query().filter(Publication.id == p_id)
+
+    subq = get_number_of_frontpages_for(p_id).subquery()
+
+    # This should avoid any div by zero error
+    no_fp = case([(subq.c.fpcount == 0, 0),],
+                 else_=cast((func.sum(WordCount.count) / subq.c.fpcount),
+                            Numeric(10, 2))).\
+                 label('frequency')
+    q = db_session.query(Word.word,
+                         no_fp,
+                         func.min(FrontPage.time_of_publication).\
+                         label('mindate'),
+                         func.max(FrontPage.time_of_publication).\
+                         label('maxdate'))
+    q = join_from_words_to_publication(q).\
+        group_by(Word.word, subq.c.fpcount).\
+        filter(Publication.id == p_id).\
+        order_by(desc('frequency'))
     res = separate_propers_and_commons(q)
-    res['propers'] = [(p[0],
-                      to_frequency(p[1], n_frontpages))
-                      for p in res['propers']]
-    res['commons'] = [(c[0],
-                      to_frequency(c[1], n_frontpages))
-                      for c in res['commons']]
+    print(res)
     return res
 
 def get_history_for(word):
@@ -208,7 +221,7 @@ def get_real_min_and_max(q):
 def word_counting_query():
     '''Our main query for counting words and getting
     the minimum and maximum date where they appeared.'''
-    q = db_session.query(Word.word.label('word'),
+    q = db_session.query(Word.word,
                          func.sum(WordCount.count).label('sumcount'),
                          func.min(FrontPage.time_of_publication).\
                          label('mindate'),
