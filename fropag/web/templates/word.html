@@ -13,7 +13,7 @@
   {% endif %}
   <script>
     init_fropag(function() { 
-        one_publish('{{ url_for('get_history_for_word', word = word) }}', '.histo', data_to_line_chart);
+        one_publish('{{ url_for('get_history_for_word', word = word) }}', '.histo', new ColorWheel(d3rainbow), data_to_line_chart);
       });
   </script>
 {% endblock %}

@@ -8,8 +8,8 @@
     </div>
 </div>
   <script>
-    init_fropag(function() { 
-        one_publish('{{ url_for('most_used_words_of', publication = publication.name) }}', '.most_used', draw_double(data_to_bar_chart));
+     init_fropag(function() { 
+        one_publish('{{ url_for('most_used_words_of', publication = publication.name) }}', '.most_used', new ColorWheelless(d3.rgb('steelblue')), draw_double(data_to_bar_chart));
       });
   </script>
 {% endblock %}

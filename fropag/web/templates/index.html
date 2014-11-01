@@ -19,7 +19,10 @@
 <script>
   init_fropag(function() { 
       box_publish('{{ url_for('get_top_words_for') }}');
-      one_publish('{{ url_for('get_top_words_all') }}', '.pub-all', draw_double(data_to_col_chart));
+      one_publish('{{ url_for('get_top_words_all') }}',
+                   '.pub-all', 
+                   new ColorWheelless(d3.rgb('steelblue')),
+                   draw_double(data_to_col_chart));
     });
 </script>
 {% endblock %}

@@ -1,7 +1,22 @@
 var d3rainbow = ['red', 'yellow', 'blue', 'violet', 'orange', 'green', 'indigo'].map(function(s) { return d3.rgb(s); });
-var rainbowCursor = 0;
 
-/** Chart builders **/
+/** Types **/
+ColorWheel = function(wheel) {
+    this.wheel = wheel;
+    this.cursor = 0;
+};
+ColorWheel.prototype.next = function() { 
+    this.cursor++;
+    return this.wheel[(this.cursor - 1) % this.wheel.length];
+};
+ColorWheelless = function(color) {
+    this.wheel = [color];
+    this.cursor = 0;
+}
+ColorWheelless.prototype = new ColorWheel();
+ColorWheelless.prototype.constructor = ColorWheelless;
+
+/** Initialization. We'll most likely need to change that. **/
 function init_fropag(then) {
     // Prepare the navbar form
     $('#search-word').submit(function(e) {
@@ -14,8 +29,7 @@ function init_fropag(then) {
     then();
 }
 
-function one_ajax_for_nodes(data, url, nodes, draw_func, values) {
-    values = values 
+function one_ajax_for_nodes(data, url, nodes, colors, draw_func, values) {
     $.get(url, data, function(data) {
         nodes.each(function(index, node) {
             // 1. Get data - may vary according to the service called
@@ -36,10 +50,7 @@ function one_ajax_for_nodes(data, url, nodes, draw_func, values) {
                 return;
               }
             }
-            // 3. Global color wheel
-            var color = d3rainbow[rainbowCursor % d3rainbow.length]
-            rainbowCursor++;
-            draw_func(relevant_data, node, color);
+            draw_func(relevant_data, node, colors.next());
         });
     });
 }
@@ -48,9 +59,9 @@ function title_text_extractor(node) {
     return $(node).children('h3').text();
 }
 
-function one_publish(url, selected_class, chart_func, data) {
+function one_publish(url, selected_class, color, chart_func, data) {
   data = data || {};
-  one_ajax_for_nodes(data, url, $(selected_class), chart_func);
+  one_ajax_for_nodes(data, url, $(selected_class), color, chart_func);
 }
 
 function box_publish(url) {
@@ -62,7 +73,12 @@ function box_publish(url) {
         values.push(title_text_extractor(node));
     });
     var args = { 'names[]' : values };
-    one_ajax_for_nodes(args, url, selected, draw_double(data_to_col_chart), values);
+    one_ajax_for_nodes(args,
+                       url, 
+                       selected, 
+                       new ColorWheel(d3rainbow),
+                       draw_double(data_to_col_chart),
+                       values);
 }
 
 function add_time_scale(dom_node, name, min, max) {
