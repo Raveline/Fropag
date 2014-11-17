@@ -30,25 +30,18 @@ function init_fropag(then) {
 }
 
 function one_ajax_for_nodes(data, url, nodes, colors, draw_func, values) {
-    $.get(url, data, function(data) {
+    $.get(url, data, function(answer) {
         nodes.each(function(index, node) {
-            // 1. Get data - may vary according to the service called
-            relevant_data = data;
-            // Multi-publication result
-            if (values) {
-              name = values[index];
-              if (name in data) {
-                  relevant_data = data[name];
-              }
-            }
-            // 2. Handle possible failure for one-shot cases
-            // (This is ugly, refactor)
-            if ("success" in data) {
-              if (data.success) {
-                relevant_data = data.data;
-              } else {
-                return;
-              }
+            // 1. Make sure this is a success
+            if ("success" in answer) {
+                relevant_data = answer.data;
+                // 2. Multi-publication case
+                if (values) {
+                    name = values[index];
+                    if (name in answer.data) {
+                        relevant_data = answer.data[name];
+                    }
+                }
             }
             draw_func(relevant_data, node, colors.next());
         });
@@ -91,24 +84,23 @@ function draw_double(func) {
         var box_node = $(node);
         var propers_node = box_node.children('.propers').get(0);
         var commons_node = box_node.children('.commons').get(0);
-        add_time_scale(box_node, name, data['mindate'], data['maxdate']);
         func(data['propers'], propers_node, tone);
         func(data['commons'], propers_node, tone);
     }
 }
 
 function data_to_col_chart(data, node, tone) {
+    title = data.title;
+    data = data.data;
     // Get node as d3 object
     node = d3.select(node);
 	// Remove the legend from our data
 	var legend = data.shift()
 	
 	// Compute size
-	var margin = {top: 20, right : 30, bottom:80, left:40};
+	var margin = {top: 30, right : 30, bottom:80, left:40};
 	var height = 352 - margin.top - margin.bottom;
 	var width = parseInt(node.style("width")) - margin.top - margin.bottom;
-	
-	var bar_width = height / data.length;
 	
 	// Create the svg
 	var svg = node.append("svg")
@@ -143,7 +135,23 @@ function data_to_col_chart(data, node, tone) {
 		.attr("width", x.rangeBand())
 		.attr("height", function(d) { return height - y(d[1]) })
 		.style("fill", function(d) { return color(d[1]); });
-	
+
+    bar.append("text")
+        .attr("x", function(d) { return x(d[0]) + x.rangeBand() / 2; })
+        .attr("y", function(d) { return y(d[1]) + 12; })
+        .attr("text-anchor", "middle")
+        .attr("fill", "black")
+        .attr("font-size", ".9em")
+        .attr("visibility", "hidden")
+        .text(function(d) { return d[1]; });
+    
+    bar.on("mouseover", function(d) { 
+            d3.select(this).select('text').attr('visibility', 'visible'); 
+        });
+    bar.on("mouseout", function(d) {
+            d3.select(this).select('text').attr('visibility', 'hidden');
+    });
+
 	// Add the axis
 	var xAxis = d3.svg.axis().scale(x).orient("bottom");
 	svg.append("g")
@@ -162,9 +170,21 @@ function data_to_col_chart(data, node, tone) {
 		.attr("class", "y axis")
 		.attr("transform", "translate(0,0)")
 		.call(yAxis);
+
+    // Add the title
+    svg.append("g")
+       .append("text")
+       .attr("y", 0-margin.top/2)
+       .attr("x", width/2)
+       .attr("text-anchor", "middle")
+       .style("font-size", ".8em")
+       .style("fill", "black")
+       .text(title);
 }
 
 function data_to_bar_chart(data, node, begin_color, end_color) {
+    title = data.title;
+    data = data.data;
     // Node as d3 object
     node = d3.select(node);
     // Remove the legend from our data
@@ -219,6 +239,15 @@ function data_to_bar_chart(data, node, begin_color, end_color) {
     .attr("class", "x axis")
     .attr("transform", "translate(0,0)")
     .call(xAxis);
+
+    // Add the title
+    svg.append("g")
+       .append("text")
+       .attr("y", 5)
+       .attr("x", width/2)
+       .style("font-zie", "1em")
+       .style("fill", "black")
+       .text(title);
 }
 
 
