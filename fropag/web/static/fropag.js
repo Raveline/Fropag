@@ -289,7 +289,7 @@ function data_to_line_chart(data, node, tone, tone_scale) {
   parsed.forEach(function(d) { d.date = parseDate(d.date); });
 
   // Compute size
-  var margin = {top: 20, right : 30, bottom:30, left:40};
+  var margin = {top: 20, right : 80, bottom:30, left:40};
   var bar_height = 20;
   var height = bar_height * (data.length);
   var width = parseInt(node.style("width")) - margin.top - margin.bottom;
@@ -376,5 +376,11 @@ function data_to_line_chart(data, node, tone, tone_scale) {
              .on("mousemove", function() { return tooltip.style("top", (event.pageY-10)+"px")
              .style("left",(event.pageX+10)+"px"); })
              .on("mouseout", function() { return tooltip.style("visibility", "hidden") });
-}
 
+  publication.append("text")
+             .attr("x", width)
+             .attr("y", function(d,i) { return i * 20 })
+             .attr("text-anchor", "right")
+             .attr("fill", function(d) { return color(d.name); })
+             .text(function(d) { return d.name; });
+}
