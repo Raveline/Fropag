@@ -131,7 +131,7 @@ def most_used_words_of(publication):
     and the 100th most used proper words, as a dictionary.'''
     top100 = get_publication_most_used(publication)
     add_prelude(top100)
-    data_set = separated_to_data_set(result,
+    data_set = separated_to_data_set(top100,
                                      PRELUDE_COMMONS_TITLE.format(100,
                                                                   publication),
                                      PRELUDE_PROPERS_TITLE.format(100,
