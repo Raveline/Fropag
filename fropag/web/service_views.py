@@ -114,7 +114,7 @@ def get_history_for_word(word):
     info = get_history_for(word)
     title = "Historique d'utilisation du mot {}.".format(word)
     data_set = {'title': title, 'data': info}
-    return to_successful_answer(data)
+    return to_successful_answer(data_set)
 
 @app.route('/top_words_for/')
 def get_top_words_for():
