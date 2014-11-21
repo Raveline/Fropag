@@ -29,8 +29,30 @@ function init_fropag(then) {
     then();
 }
 
+/** Given an object, recursively get every numeric data type it contains.**/
+function extract_numbers(data) {
+    var res = [];
+    for (i in data) {
+        type = typeof(data[i]);
+        if (type == 'number') {
+            res.push(data[i]);
+        } else if (type == 'object') {
+            res = res.concat(extract_numbers(data[i]));
+        }
+    }
+    return res;
+}
+
+/** Given an object, extract its numeric data and return the min and max
+ * of the ensemble. This let us know the global scale of displayed data.**/
+function min_max(data) {
+    numbers = extract_numbers(data);
+    return { 'min' : d3.min(numbers), 'max' : d3.max(numbers) };
+}
+
 function one_ajax_for_nodes(data, url, nodes, colors, draw_func, values) {
     $.get(url, data, function(answer) {
+        scale = min_max(answer);
         nodes.each(function(index, node) {
             // 1. Make sure this is a success
             if ("success" in answer) {
@@ -43,7 +65,7 @@ function one_ajax_for_nodes(data, url, nodes, colors, draw_func, values) {
                     }
                 }
             }
-            draw_func(relevant_data, node, colors.next());
+            draw_func(relevant_data, node, colors.next(), scale);
         });
     });
 }
@@ -80,16 +102,16 @@ function add_time_scale(dom_node, name, min, max) {
 }
 
 function draw_double(func) {
-    return function(data, node, tone) {
+    return function(data, node, tone, scale) {
         var box_node = $(node);
         var propers_node = box_node.children('.propers').get(0);
         var commons_node = box_node.children('.commons').get(0);
-        func(data['propers'], propers_node, tone);
-        func(data['commons'], propers_node, tone);
+        func(data['propers'], propers_node, tone, scale);
+        func(data['commons'], propers_node, tone, scale);
     }
 }
 
-function data_to_col_chart(data, node, tone) {
+function data_to_col_chart(data, node, tone, tone_scale) {
     title = data.title;
     data = data.data;
     // Get node as d3 object
@@ -119,9 +141,8 @@ function data_to_col_chart(data, node, tone) {
 			.domain(data.map(function(d) { return d[0]; }))
 			.rangeRoundBands([0, width], .1,0);
 
-    var magn = magnitude(maximum);
 	var color = d3.scale.linear()
-				  .domain([0,magn])
+				  .domain([0, (tone_scale.max * 2)])
 				  .interpolate(d3.interpolateRgb)
 				  .range(["#FFFACD", tone]);
 			
@@ -182,7 +203,7 @@ function data_to_col_chart(data, node, tone) {
        .text(title);
 }
 
-function data_to_bar_chart(data, node, begin_color, end_color) {
+function data_to_bar_chart(data, node, tone, tone_scale) {
     title = data.title;
     data = data.data;
     // Node as d3 object
@@ -190,7 +211,7 @@ function data_to_bar_chart(data, node, begin_color, end_color) {
     // Remove the legend from our data
     var legend = data.shift();
     // Compute size
-    var margin = {top: 20, right : 30, bottom:30, left:40};
+    var margin = {top: 80, right : 30, bottom:30, left:40};
     var bar_height = 20;
     var height = bar_height * (data.length)
     var width = parseInt(node.style("width")) - margin.top - margin.bottom;
@@ -204,9 +225,9 @@ function data_to_bar_chart(data, node, begin_color, end_color) {
                   .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
     
     var color = d3.scale.linear()
-                        .domain([0,10])
+                        .domain([0,(tone_scale.max)])
                         .interpolate(d3.interpolateRgb)
-                        .range([begin_color, end_color]);
+                        .range(["#FFFACD", tone]);
     
     // Prepare the scale
     var x = d3.scale.linear()
@@ -230,7 +251,7 @@ function data_to_bar_chart(data, node, begin_color, end_color) {
        .attr("x", 3)
        .attr("y", bar_height/2 + 4)
        .style("font-size", ".8em")
-       .style("fill", "white")
+       .style("fill", "black")
        .text(function(d) { return [d[0], " (", d[1], ")"].join(''); });
     
     // Add the axis
@@ -243,8 +264,9 @@ function data_to_bar_chart(data, node, begin_color, end_color) {
     // Add the title
     svg.append("g")
        .append("text")
-       .attr("y", 5)
+       .attr("y", 0-margin.top/2)
        .attr("x", width/2)
+       .attr("text-anchor", "middle")
        .style("font-zie", "1em")
        .style("fill", "black")
        .text(title);
@@ -353,8 +375,3 @@ function data_to_line_chart(data, node) {
              .on("mouseout", function() { return tooltip.style("visibility", "hidden") });
 }
 
-function magnitude(numeric) {
-    // Pop ! Pop !
-    asInt = parseInt(numeric);
-    return Math.pow(10, (asInt+"").length);
-}
