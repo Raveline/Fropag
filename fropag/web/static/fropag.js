@@ -273,9 +273,12 @@ function data_to_bar_chart(data, node, tone, tone_scale) {
 }
 
 
-function data_to_line_chart(data, node) {
+function data_to_line_chart(data, node, tone, tone_scale) {
   // Node as d3 object
   node = d3.select(node);
+  // Separate title and data
+  var title = data.title;
+  data = data.data;
 
   // We'll need this as a list of objects
   var as_csv = d3.csv.formatRows(data);
