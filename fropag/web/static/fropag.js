@@ -291,7 +291,7 @@ function data_to_line_chart(data, node, tone, tone_scale) {
   // Compute size
   var margin = {top: 20, right : 80, bottom:30, left:40};
   var bar_height = 20;
-  var height = bar_height * (data.length);
+  var height = 300;
   var width = parseInt(node.style("width")) - margin.top - margin.bottom;
 
   // Add the svg
