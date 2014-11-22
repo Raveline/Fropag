@@ -370,9 +370,9 @@ function data_to_line_chart(data, node, tone, tone_scale) {
              .style("stroke-width", 2)
              .on("mouseover", function(d, i, c) { var mouse = d3.mouse(this);
                                                   var xv = x.invert(mouse[0]);
-                                                  var yv = y.invert(mouse[1]);
+                                                  var yv = y.invert(mouse[1]).toFixed(2);
                                                   return tooltip.style("visibility", "visible")
-                                                                .text(xv + " : " + yv);})
+                                                                .text(xv.toLocaleDateString() + " : " + yv);})
              .on("mousemove", function() { return tooltip.style("top", (event.pageY-10)+"px")
              .style("left",(event.pageX+10)+"px"); })
              .on("mouseout", function() { return tooltip.style("visibility", "hidden") });
