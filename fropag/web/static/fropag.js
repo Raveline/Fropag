@@ -363,7 +363,7 @@ function data_to_line_chart(data, node, tone, tone_scale) {
 
   publication.append("path")
              .attr("class", "line")
-             .attr("id", "thePath")
+             .attr("id", function(d) { return "path" + normalized_string(d.name); })
              .attr("d", function(d) { return line(d.values); })
              .style("fill", "none")
              .style("stroke", function(d) { return color(d.name); })
@@ -381,6 +381,19 @@ function data_to_line_chart(data, node, tone, tone_scale) {
              .attr("x", width)
              .attr("y", function(d,i) { return i * 20 })
              .attr("text-anchor", "right")
+             .attr("cursor", "pointer")
              .attr("fill", function(d) { return color(d.name); })
-             .text(function(d) { return d.name; });
+             .text(function(d) { return d.name; })
+             .on("click", function(d, i, c) { var line = "#path" + normalized_string(d3.select(this).text());
+                                              var path = d3.select(line);
+                                              if (path.attr('visibility') == 'hidden') {
+                                                path.attr('visibility', 'visible');
+                                              } else {
+                                                d3.select(line).attr('visibility', 'hidden');
+                                              }
+                                            });
+}
+
+function normalized_string(string) {
+    return string.replace(/\s/g, '').replace(/\'/g, '');
 }
